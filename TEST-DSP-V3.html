@@ -448,8 +448,8 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
  window.cleanRepairNotes=function(value){return String(value||'').replace(/\n?\[DSP_REPAIR\|\d{4}-\d{2}-\d{2}\|[^\]]*\]/g,'').trim();};
  const repairOf=c=>{const m=String(c?.notes||'').match(repairPattern);return m?{date:m[1],by:decodeURIComponent(m[2])}:null;};
  const sortChecks=id=>checks.filter(c=>String(c.vehicleId??c.vehicle_id)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id));
- const marksOf=c=>Array.isArray(c.marks)?c.marks:[];
- const isDamage=c=>normStatus(c.status)==='degats'||marksOf(c).length>0;
+ const marksOf=c=>{if(Array.isArray(c.marks))return c.marks;if(typeof c.marks==='string'){try{const x=JSON.parse(c.marks);return Array.isArray(x)?x:[]}catch(e){}}return [];};
+ const isDamage=c=>normStatus(c.status)==='degats'||marksOf(c).length>0||/(rayur|erafl|casse|fissur|bossel|degat|defaut|manquant|non fonctionnel|abim|endommag)/i.test(String(c.notes||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());
  const historyDamage=id=>{
   const events=sortChecks(id).filter(isDamage);
   return {events,pending:events.filter(c=>!repairOf(c))};
