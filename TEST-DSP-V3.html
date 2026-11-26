@@ -420,57 +420,52 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
 
 <script id="dsp-vehicle-full-sheet">
 (function(){
- const sortChecks=id=>checks.filter(c=>String(c.vehicleId)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id));
+ const normStatus=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+ const sortChecks=id=>checks.filter(c=>String(c.vehicleId??c.vehicle_id)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id));
+ const marksOf=c=>Array.isArray(c.marks)?c.marks:[];
+ const isDamage=c=>normStatus(c.status)==='degats'||marksOf(c).length>0;
+ const historyDamage=id=>{
+  const chronological=[...sortChecks(id)].reverse();
+  let lastClear=-1;
+  chronological.forEach((c,i)=>{if(normStatus(c.status)==='ok'&&marksOf(c).length===0)lastClear=i;});
+  const events=chronological.filter(isDamage);
+  return {events,pending:events.filter(c=>chronological.indexOf(c)>lastClear)};
+ };
+ const damagePanel=id=>{
+  const {events,pending}=historyDamage(id);
+  if(!events.length)return '<section style="margin:12px 0;padding:13px;border-radius:10px;border-left:5px solid #16a34a;background:#f0fdf4;color:#172033"><b>✓ Aucun dégât précédemment déclaré</b><p style="margin:6px 0 0">Aucun ancien contrôle ne comporte de dégât ou de repère enregistré pour ce véhicule.</p></section>';
+  const pendingIds=new Set(pending.map(c=>String(c.id)));
+  const rows=events.slice().reverse().map(c=>{
+   const marks=marksOf(c);
+   const description=marks.length?marks.map(m=>String(m.type||'Défaut')+' — '+String(m.view||'vue non précisée')).join(', '):(c.notes||'Dégâts déclarés sans détail supplémentaire');
+   return '<li style="margin:8px 0"><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(c.status||'Dégâts')+'<br>'+esc(description)+'<br><small>DSP : '+esc(c.inspector||'—')+' · Chauffeur : '+esc(c.driver||'—')+' · '+(pendingIds.has(String(c.id))?'<b style="color:#c2410c">À vérifier — pas encore levé par un contrôle OK</b>':'<span style="color:#15803d">Un contrôle OK sans repère a été enregistré ensuite</span>')+'</small></li>';
+  }).join('');
+  return '<section style="margin:12px 0;padding:13px;border-radius:10px;border-left:5px solid '+(pending.length?'#ea580c':'#2563eb')+';background:'+(pending.length?'#fff7ed':'#eff6ff')+';color:#172033"><b>'+(pending.length?'⚠️ ATTENTION — DÉGÂTS DÉJÀ SIGNALÉS SUR CE VÉHICULE':'ℹ️ HISTORIQUE — DÉGÂTS DÉJÀ DÉCLARÉS')+'</b><p style="margin:6px 0">Ce véhicule a fait l’objet de '+events.length+' contrôle(s) avec dégât(s) ou repère(s). Le DSP qui réalise le nouveau contrôle doit en prendre connaissance avant de commencer.</p><ul style="padding-left:20px;margin:8px 0">'+rows+'</ul><small>Les déclarations restent visibles dans l’historique, même après un contrôle OK ultérieur. Les dégâts encore à vérifier sont signalés séparément.</small></section>';
+ };
  window.renderVehicleHistoryList=function(id,q=''){
   const v=vehicles.find(x=>String(x.id)===String(id));if(!v)return;
   const arr=sortChecks(id),term=String(q||'').toLowerCase();
-  const list=arr.filter(c=>!term||[c.date,c.inspector,c.driver,c.status,c.notes,v.plate,v.name].join(' ').toLowerCase().includes(term));
+  const list=arr.filter(c=>!term||[c.date,c.inspector,c.driver,c.status,c.notes,v.plate,v.name,marksOf(c).map(m=>m.type+' '+m.view).join(' ')].join(' ').toLowerCase().includes(term));
   const box=$('globalHistory');box.dataset.mode='vehicle';box.dataset.vehicle=id;
-  const cards=list.map(c=>'<button type="button" class="history-item" style="display:block;width:100%;text-align:left;margin:8px 0" onclick="openVehicleHistoryCheck('+Number(c.id)+','+Number(id)+')"><b>'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+'</b><div class="muted">DSP '+esc(c.inspector||'—')+' · Chauffeur '+esc(c.driver||'—')+'</div><p>Repères : '+esc((c.marks||[]).map(m=>(m.type||'Défaut')+' — '+(m.view||'')).join(', ')||'Aucun')+'</p><small>Ouvrir la fiche complète</small></button>').join('');
-  box.innerHTML='<button type="button" class="secondary" onclick="switchTab(\'fleet\')">← Retour à la flotte</button><h2>Historique du véhicule — '+esc(v.name)+'</h2><p class="muted">'+esc(v.plate||'Plaque non renseignée')+' · '+arr.length+' contrôle(s)</p><input id="vhSearch" class="dsp-search" placeholder="Rechercher dans cet historique…" value="'+esc(q)+'"><div id="vhResults">'+(cards||'<p class="muted">Aucun contrôle enregistré pour ce véhicule.</p>')+'</div>';
+  const cards=list.map(c=>'<button type="button" class="history-item" style="display:block;width:100%;text-align:left;margin:8px 0" onclick="openVehicleHistoryCheck('+Number(c.id)+','+Number(id)+')"><b>'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+'</b><div class="muted">DSP '+esc(c.inspector||'—')+' · Chauffeur '+esc(c.driver||'—')+'</div><p>Repères : '+esc(marksOf(c).map(m=>(m.type||'Défaut')+' — '+(m.view||'')).join(', ')||(normStatus(c.status)==='degats'?'Dégâts déclarés':'Aucun'))+'</p><small>Ouvrir la fiche complète</small></button>').join('');
+  box.innerHTML='<button type="button" class="secondary" onclick="switchTab(\'fleet\')">← Retour à la flotte</button><h2>Historique du véhicule — '+esc(v.name)+'</h2><p class="muted">'+esc(v.plate||'Plaque non renseignée')+' · '+arr.length+' contrôle(s)</p>'+damagePanel(id)+'<input id="vhSearch" class="dsp-search" placeholder="Rechercher dans cet historique…" value="'+esc(q)+'"><div id="vhResults">'+(cards||'<p class="muted">Aucun contrôle enregistré pour ce véhicule.</p>')+'</div>';
   $('vhSearch').oninput=e=>window.renderVehicleHistoryList(id,e.target.value);
  };
  window.showVehicleHistory=function(id){
-  const arr=sortChecks(id);
   switchTab('history');
-  if(arr.length)window.openVehicleHistoryCheck(arr[0].id,id);
-  else window.renderVehicleHistoryList(id);
+  window.renderVehicleHistoryList(id);
  };
  window.openVehicleHistoryCheck=function(checkId,vehicleId){
+  const box=$('globalHistory');box.dataset.mode='vehicle';box.dataset.vehicle=vehicleId;
   window.renderHistoryCheckView(checkId,'avant');
-  const box=$('globalHistory');
-  const oldBack=box.querySelector('button');
-  if(oldBack)oldBack.remove();
   const v=vehicles.find(x=>String(x.id)===String(vehicleId));
-  const arr=sortChecks(vehicleId);
   const nav=document.createElement('div');
   nav.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px';
   const back=document.createElement('button');back.type='button';back.className='secondary';back.textContent='← Tous les contrôles de ce véhicule';back.onclick=()=>window.renderVehicleHistoryList(vehicleId);
-  const identity=document.createElement('span');identity.className='muted';identity.style.cssText='align-self:center';identity.textContent=(v?.name||'Véhicule')+' · '+arr.length+' contrôle(s) dans l’historique';
+  const identity=document.createElement('span');identity.className='muted';identity.style.cssText='align-self:center';identity.textContent=(v?.name||'Véhicule')+' · '+sortChecks(vehicleId).length+' contrôle(s) dans l’historique';
   nav.append(back,identity);box.prepend(nav);
-
-  // Un défaut reste signalé jusqu'à un contrôle ultérieur OK sans repère.
-  const chronological=[...arr].reverse();
-  let lastClear=-1;
-  chronological.forEach((c,i)=>{if(c.status==='OK'&&!(Array.isArray(c.marks)?c.marks:[]).length)lastClear=i;});
-  const pending=chronological.slice(lastClear+1).filter(c=>c.status==='Dégâts'||(Array.isArray(c.marks)?c.marks:[]).length||String(c.notes||'').trim());
-  const alert=document.createElement('div');
-  alert.style.cssText='margin:0 0 14px;padding:12px;border-radius:10px;border-left:5px solid '+(pending.length?'#ea580c':'#16a34a')+';background:'+(pending.length?'#fff7ed':'#f0fdf4')+';color:#172033';
-  alert.innerHTML=pending.length
-   ?'<b>⚠️ Défauts / dégâts encore à vérifier</b><p>'+pending.length+' contrôle(s) signalent une anomalie non encore levée par un contrôle OK sans repère.</p><ul>'+pending.map(c=>'<li><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(c.status||'Anomalie')+' : '+esc((c.marks||[]).map(m=>(m.type||'Défaut')+' ('+(m.view||'vue non précisée')+')').join(', ')||c.notes||'Dégâts signalés')+'</li>').join('')+'</ul><small>Ces anomalies restent visibles même si elles datent de plusieurs jours. Elles ne disparaissent qu’après un contrôle ultérieur enregistré OK sans repère.</small>'
-   :'<b>✓ Aucun défaut ancien en attente</b><p>Le dernier état connu ne signale pas d’anomalie non résolue.</p>';
-  nav.after(alert);
-
-  const current=arr.findIndex(c=>String(c.id)===String(checkId));
-  const older=arr.slice(current+1);
-  if(older.length){
-   const section=document.createElement('details');section.style.cssText='margin:14px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px';
-   const summary=document.createElement('summary');summary.textContent='Voir les '+older.length+' autre(s) contrôle(s) précédent(s)';
-   const list=document.createElement('div');list.style.marginTop='10px';
-   list.innerHTML=older.map(c=>'<button type="button" class="history-item" style="display:block;width:100%;text-align:left;margin:6px 0" onclick="openVehicleHistoryCheck('+Number(c.id)+','+Number(vehicleId)+')">'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+' · '+esc(c.inspector||'DSP non renseigné')+'</button>').join('');
-   section.append(summary,list);
-   const panel=box.querySelector('.panel');if(panel)panel.append(section);else box.append(section);
-  }
+  const panel=box.querySelector('.panel')||box;
+  panel.insertAdjacentHTML('beforebegin',damagePanel(vehicleId));
  };
 })();
 </script>
