@@ -420,9 +420,9 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
 
 <script id="dsp-vehicle-full-sheet">
 (function(){
- const normStatus=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
- const repairPattern=/\\[DSP_REPAIR\\|(\\d{4}-\\d{2}-\\d{2})\\|([^\\]]*)\\]/;
- window.cleanRepairNotes=function(value){return String(value||'').replace(/\\n?\\[DSP_REPAIR\\|\\d{4}-\\d{2}-\\d{2}\\|[^\\]]*\\]/g,'').trim();};
+ const normStatus=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ const repairPattern=/\[DSP_REPAIR\|(\d{4}-\d{2}-\d{2})\|([^\]]*)\]/;
+ window.cleanRepairNotes=function(value){return String(value||'').replace(/\n?\[DSP_REPAIR\|\d{4}-\d{2}-\d{2}\|[^\]]*\]/g,'').trim();};
  const repairOf=c=>{const m=String(c?.notes||'').match(repairPattern);return m?{date:m[1],by:decodeURIComponent(m[2])}:null;};
  const sortChecks=id=>checks.filter(c=>String(c.vehicleId??c.vehicle_id)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id));
  const marksOf=c=>Array.isArray(c.marks)?c.marks:[];
@@ -443,9 +443,9 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
   if(!dsp.trim()){alert('Le nom du DSP est obligatoire pour enregistrer la réparation.');return;}
   if(!confirm('Confirmer que les dégâts déclarés le '+formatHistoryDate(c.date)+' sont bien réparés ? La déclaration d’origine sera conservée dans l’historique.'))return;
   const date=today();
-  const marker='[DSP_REPAIR|'+date+'|'+encodeURIComponent(dsp.trim().replace(/[\\[\\]\\n\\r]/g,' '))+']';
+  const marker='[DSP_REPAIR|'+date+'|'+encodeURIComponent(dsp.trim().replace(/[\[\]\n\r]/g,' '))+']';
   const clean=window.cleanRepairNotes(c.notes);
-  const notes=(clean?clean+'\\n':'')+marker;
+  const notes=(clean?clean+'\n':'')+marker;
   const result=await sb.from('checks').update({notes}).eq('id',c.id);
   if(result.error){alert('Impossible d’enregistrer la réparation : '+result.error.message);return;}
   await loadData();
