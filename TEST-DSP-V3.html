@@ -330,7 +330,44 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
      return '<article><h2>Contrôle '+(index+1)+' — '+reportEscape(v?.name||'Véhicule supprimé')+'</h2><p><b>Immatriculation :</b> '+reportEscape(v?.plate||'Non renseignée')+' · <b>Modèle :</b> '+reportEscape(modelName(model))+'</p><p><b>Résultat :</b> '+reportEscape(c.status||'—')+' · <b>DSP :</b> '+reportEscape(c.inspector||'—')+' · <b>Chauffeur :</b> '+reportEscape(c.driver||'—')+'</p><h3>Observations</h3><p>'+reportEscape(c.notes||'Aucune observation.')+'</p><h3>Propreté</h3><p><b>État :</b> '+reportEscape(c.cleanStatus||'—')+' · <b>Commentaire :</b> '+reportEscape(c.cleanNote||'Aucun commentaire.')+'</p><h3>Repères de défauts ('+marks.length+')</h3>'+markList+(views?'<h3>Vues avec repères positionnés</h3>'+views:'')+(c.photo?'<h3>Photo jointe</h3><p><a href="'+reportEscape(c.photo)+'">Ouvrir la photo du contrôle</a></p><img class="attached" src="'+reportEscape(c.photo)+'" alt="Photo jointe">':'<p>Aucune photo jointe.</p>')+'</article>';
    }).join('');
    const issues=rows.filter(c=>c.status==='Dégâts'||(c.marks||[]).length).length;
-   return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport Multicourses — '+reportEscape(formatHistoryDate(day))+'</title><style>body{font:15px Arial,sans-serif;color:#172033;line-height:1.5;margin:24px auto;padding:0 16px;max-width:900px}h1,h2{color:#12315d}article{border:1px solid #cbd5e1;border-radius:12px;padding:18px;margin:20px 0;page-break-inside:avoid}h3{margin-bottom:5px;color:#244b77}h4{margin:10px 0}.vehicle-view{position:relative;width:100%;max-width:500px;aspect-ratio:500/340;background:#f1f5f9}.vehicle-view img,.vehicle-view svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.vehicle-view svg{pointer-events:none}li{margin:6px 0}li i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}.attached{display:block;max-width:100%;height:auto;border-radius:8px}@media print{body{margin:0}article{break-inside:avoid}}</style></head><body><h1>Multicourses — Rapport journalier des contrôles</h1><p><b>Date :</b> '+reportEscape(formatHistoryDate(day))+'</p><p><b>Nombre de contrôles :</b> '+rows.length+' · <b>Contrôles avec dégâts ou repères :</b> '+issues+'</p>'+(detail||'<p>Aucun contrôle enregistré pour cette journée.</p>')+'<footer><hr><p>Rapport généré depuis DSP — Contrôle de flotte.</p></footer></body></html>';
+   return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport Multicourses — '+reportEscape(formatHistoryDate(day))+'</title><style>body{font:15px Arial,sans-serif;color:#172033;line-height:1.5;margin:24px auto;padding:0 16px;max-width:900px}h1,h2{color:#12315d}article{border:1px solid #cbd5e1;border-radius:12px;padding:18px;margin:20px 0;page-break-inside:avoid}h3{margin-bottom:5px;color:#244b77}h4{margin:10px 0}.vehicle-view{position:relative;width:100%;max-width:500px;aspect-ratio:500/340;background:#f1f5f9}.vehicle-view img,.vehicle-view svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.vehicle-view svg{pointer-events:none}li{margin:6px 0}li i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}.attached{display:block;max-width:100%;height:auto;border-radius:8px}@media print{body{margin:0}article{break-inside:avoid}}</style></head><body><h1>Multicourses — Rapport journalier des contrôles</h1><p><b>Date :</b> '+reportEscape(formatHistoryDate(day))+'</p><p><b>Nombre de contrôles :</b> '+rows.length+' · <b>Contrôles avec dégâts ou repères :</b> '+issues+'</p>'+(detail||'<p>Aucun contrôle enregistré pour cette journée.</p>')+'<footer><hr><p>Rapport généré depuis DSP — Contrôle de flotte.</p></footer>
+<script id="dsp-history-tools">
+(function(){
+ const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ let hq='',dq='';
+ window.showVehicleHistory=function(id){
+  const v=vehicles.find(x=>String(x.id)===String(id));if(!v)return;
+  const arr=checks.filter(c=>String(c.vehicleId)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||Number(b.id)-Number(a.id));
+  switchTab('history');const box=$('globalHistory');box.dataset.mode='vehicle';box.dataset.vehicle=id;
+  const draw=q=>{hq=q;const list=arr.filter(c=>!q||norm([c.date,c.inspector,c.driver,c.status,c.notes].join(' ')).includes(norm(q)));box.innerHTML='<button class="secondary" onclick="switchTab(\'fleet\')">← Retour à la flotte</button><h2>Historique — '+esc(v.name)+'</h2><p class="muted">'+esc(v.plate||'')+' · '+list.length+' contrôle(s)</p><input id="vhSearch" class="dsp-search" placeholder="Rechercher dans cet historique…" value="'+esc(q)+'"><div id="vhResults">'+list.map(c=>'<button class="history-item" style="display:block;width:100%;text-align:left;margin:8px 0" onclick="openVehicleHistoryCheck(\''+esc(c.id)+'\',\''+esc(id)+'\')"><b>'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+'</b><div class="muted">DSP '+esc(c.inspector||'—')+' · Conducteur '+esc(c.driver||'—')+'</div><p>'+esc((c.marks||[]).map(m=>m.type+' '+m.view).join(', ')||c.notes||'Aucun défaut')+'</p></button>').join('')||'<p>Aucun contrôle.</p>'+'</div>';const input=$('vhSearch');input.oninput=()=>draw(input.value);};
+  draw(hq);
+ };
+ window.openVehicleHistoryCheck=function(checkId,vehicleId){renderHistoryCheckView(checkId,'avant');const b=document.createElement('button');b.className='secondary';b.textContent='← Retour à l’historique du véhicule';b.onclick=()=>showVehicleHistory(vehicleId);$('globalHistory').prepend(b);};
+ const oldVehicles=window.renderVehicles;
+ window.renderVehicles=function(){
+  $('vehicleList').innerHTML=vehicles.filter(v=>(v.name+' '+(v.plate||'')).toLowerCase().includes(($('search')?.value||'').toLowerCase())).map(v=>'<div class="item" style="cursor:pointer" onclick="showVehicleHistory(\''+esc(v.id)+'\')"><div><h3>'+esc(v.name)+'</h3><div class="muted">'+esc(v.plate||'Plaque non renseignée')+' · '+esc(modelName(v.model))+'</div><small>Toucher pour voir l’historique</small></div><div class="top-actions"><button onclick="event.stopPropagation();openDetail(\''+esc(v.id)+'\')">Faire un contrôle</button><button class="secondary" onclick="event.stopPropagation();editVehicle(\''+esc(v.id)+'\')">Modifier</button><button class="danger" onclick="event.stopPropagation();deleteVehicle(\''+esc(v.id)+'\')">Supprimer</button></div></div>').join('')||'<div class="panel muted">Aucun véhicule ajouté.</div>';
+ };
+ const oldStart=window.startCheck;
+ window.startCheck=function(){
+  oldStart();let input=$('dailyPlateSearch');
+  if(!input){input=document.createElement('input');input.id='dailyPlateSearch';input.className='dsp-search';input.placeholder='Rechercher par véhicule ou immatriculation…';$('dailyList').parentNode.insertBefore(input,$('dailyList'));}
+  input.value=dq;input.oninput=()=>{dq=input.value;document.querySelectorAll('#dailyList .veh').forEach(el=>el.style.display=norm(el.innerText).includes(norm(dq))?'':'none')};
+  input.oninput();
+ };
+ function outstanding(id){
+  const arr=checks.filter(c=>String(c.vehicleId)===String(id)).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||Number(a.id)-Number(b.id));
+  let clear=-1;arr.forEach((c,i)=>{if(c.status==='OK'&&!(c.marks||[]).length)clear=i});
+  return arr.slice(clear+1).filter(c=>c.status==='Dégâts'||(c.marks||[]).length||String(c.notes||'').trim());
+ }
+ window.renderPreviousCheck=function(id){
+  const arr=outstanding(id);if(!arr.length)return '<div class="history-item" style="border-left:5px solid #16a34a;background:#f0fdf4;padding:12px"><b>Aucune ancienne anomalie en attente</b></div>';
+  const list=arr.map(c=>'<li><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(c.status||'Anomalie')+' : '+esc((c.marks||[]).map(m=>m.type+' ('+m.view+')').join(', ')||c.notes||'Dégâts signalés')+'</li>').join('');
+  return '<div class="history-item" style="border-left:5px solid #ea580c;background:#fff7ed;padding:12px"><b>⚠️ Anomalies anciennes à vérifier</b><p>'+arr.length+' contrôle(s) avec anomalie depuis le dernier contrôle OK sans défaut :</p><ul>'+list+'</ul><p class="small">Elles restent signalées tant qu’un contrôle ultérieur n’est pas enregistré OK sans repère.</p></div>';
+ };
+ const style=document.createElement('style');style.textContent='.dsp-search{width:100%;padding:12px;border:1px solid #aebdce;border-radius:10px;margin:10px 0 14px;font-size:16px;background:#fff;color:#172033}';document.head.appendChild(style);
+})();
+</script>
+</body></html>';
  }
  window.shareDailyReport=async function(day){
    const rows=checks.filter(c=>historyDayKey(c)===day);
