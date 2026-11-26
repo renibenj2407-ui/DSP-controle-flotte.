@@ -417,4 +417,48 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
  const style=document.createElement('style');style.textContent='.dsp-search{width:100%;padding:12px;border:1px solid #aebdce;border-radius:10px;margin:10px 0 14px;font-size:16px;background:#fff;color:#172033}';document.head.appendChild(style);
 })();
 </script>
+
+<script id="dsp-vehicle-full-sheet">
+(function(){
+ const sortChecks=id=>checks.filter(c=>String(c.vehicleId)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id));
+ window.renderVehicleHistoryList=function(id,q=''){
+  const v=vehicles.find(x=>String(x.id)===String(id));if(!v)return;
+  const arr=sortChecks(id),term=String(q||'').toLowerCase();
+  const list=arr.filter(c=>!term||[c.date,c.inspector,c.driver,c.status,c.notes,v.plate,v.name].join(' ').toLowerCase().includes(term));
+  const box=$('globalHistory');box.dataset.mode='vehicle';box.dataset.vehicle=id;
+  const cards=list.map(c=>'<button type="button" class="history-item" style="display:block;width:100%;text-align:left;margin:8px 0" onclick="openVehicleHistoryCheck('+Number(c.id)+','+Number(id)+')"><b>'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+'</b><div class="muted">DSP '+esc(c.inspector||'—')+' · Chauffeur '+esc(c.driver||'—')+'</div><p>Repères : '+esc((c.marks||[]).map(m=>(m.type||'Défaut')+' — '+(m.view||'')).join(', ')||'Aucun')+'</p><small>Ouvrir la fiche complète</small></button>').join('');
+  box.innerHTML='<button type="button" class="secondary" onclick="switchTab(\'fleet\')">← Retour à la flotte</button><h2>Historique du véhicule — '+esc(v.name)+'</h2><p class="muted">'+esc(v.plate||'Plaque non renseignée')+' · '+arr.length+' contrôle(s)</p><input id="vhSearch" class="dsp-search" placeholder="Rechercher dans cet historique…" value="'+esc(q)+'"><div id="vhResults">'+(cards||'<p class="muted">Aucun contrôle enregistré pour ce véhicule.</p>')+'</div>';
+  $('vhSearch').oninput=e=>window.renderVehicleHistoryList(id,e.target.value);
+ };
+ window.showVehicleHistory=function(id){
+  const arr=sortChecks(id);
+  switchTab('history');
+  if(arr.length)window.openVehicleHistoryCheck(arr[0].id,id);
+  else window.renderVehicleHistoryList(id);
+ };
+ window.openVehicleHistoryCheck=function(checkId,vehicleId){
+  window.renderHistoryCheckView(checkId,'avant');
+  const box=$('globalHistory');
+  const oldBack=box.querySelector('button');
+  if(oldBack)oldBack.remove();
+  const v=vehicles.find(x=>String(x.id)===String(vehicleId));
+  const arr=sortChecks(vehicleId);
+  const nav=document.createElement('div');
+  nav.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px';
+  const back=document.createElement('button');back.type='button';back.className='secondary';back.textContent='← Tous les contrôles de ce véhicule';back.onclick=()=>window.renderVehicleHistoryList(vehicleId);
+  const identity=document.createElement('span');identity.className='muted';identity.style.cssText='align-self:center';identity.textContent=(v?.name||'Véhicule')+' · '+arr.length+' contrôle(s) dans l’historique';
+  nav.append(back,identity);box.prepend(nav);
+  const current=arr.findIndex(c=>String(c.id)===String(checkId));
+  const older=arr.slice(current+1);
+  if(older.length){
+   const section=document.createElement('details');section.style.cssText='margin:14px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px';
+   const summary=document.createElement('summary');summary.textContent='Voir les '+older.length+' autre(s) contrôle(s) précédent(s)';
+   const list=document.createElement('div');list.style.marginTop='10px';
+   list.innerHTML=older.map(c=>'<button type="button" class="history-item" style="display:block;width:100%;text-align:left;margin:6px 0" onclick="openVehicleHistoryCheck('+Number(c.id)+','+Number(vehicleId)+')">'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+' · '+esc(c.inspector||'DSP non renseigné')+'</button>').join('');
+   section.append(summary,list);
+   const panel=box.querySelector('.panel');if(panel)panel.append(section);else box.append(section);
+  }
+ };
+})();
+</script>
 </body></html>
