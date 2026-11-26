@@ -235,4 +235,43 @@ window.renderHistoryCheckView = function(id, view){
 };
 window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');};
 </script>
+
+<script>
+/* Repères historiques visibles pendant le nouveau contrôle, sans être réenregistrés */
+(function(){
+ const viewLabels={avant:'Avant',arriere:'Arrière',gauche:'Côté gauche',droite:'Côté droit',cabine:'Cabine',chargement:'Chargement'};
+ const markColor=m=>/^#[0-9a-fA-F]{6}$/.test(m.color||'')?m.color:({'cassé':'#ef2929','rayé':'#eab308','manquant':'#22c55e','non fonctionnel':'#111827'}[m.type]||'#64748b');
+ window.renderPreviousReference=function(vehicleId,view){
+   const prev=checks.filter(c=>String(c.vehicleId)===String(vehicleId)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id))[0];
+   if(!prev)return '<p>Aucun contrôle précédent.</p>';
+   const v=vehicles.find(x=>String(x.id)===String(vehicleId));const model=v?.model||'primastar';const p=photos[model]||{};
+   const src=(view==='droite'?(p.droite||p.gauche):p[view])||'';
+   const marks=(Array.isArray(prev.marks)?prev.marks:[]).filter(m=>m.view===view);
+   const pins=marks.map(m=>'<circle cx="'+Math.max(0,Math.min(500,Number(m.x)||0))+'" cy="'+Math.max(0,Math.min(340,Number(m.y)||0))+'" r="11" fill="'+markColor(m)+'" stroke="#111827" stroke-width="3" stroke-dasharray="4 2" opacity=".9"/><circle cx="'+Math.max(0,Math.min(500,Number(m.x)||0))+'" cy="'+Math.max(0,Math.min(340,Number(m.y)||0))+'" r="3" fill="#fff"/>').join('');
+   return '<div style="position:relative;width:100%;aspect-ratio:500/340;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden">'+(src?'<div style="position:relative;width:100%;height:100%;'+(view==='droite'?'transform:scaleX(-1);':'')+'"><img src="'+esc(src)+'" alt="'+esc(viewLabels[view])+'" style="width:100%;height:100%;object-fit:contain"><svg viewBox="0 0 500 340" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">'+pins+'</svg></div>':'<p style="padding:14px;text-align:center;color:#334155">Vue non disponible pour ce modèle. Les repères restent listés ci-dessous.</p>')+'</div><p style="font-weight:700;color:#263449">'+marks.length+' ancien(s) repère(s) sur cette vue</p><ul>'+ (marks.map(m=>'<li>'+esc(m.type||'Défaut')+' — position '+Math.round(Number(m.x)||0)+', '+Math.round(Number(m.y)||0)+'</li>').join('')||'<li>Aucun repère sur cette vue.</li>')+'</ul>';
+ };
+ window.renderPreviousCheck=function(vehicleId){
+   const prev=checks.filter(c=>String(c.vehicleId)===String(vehicleId)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id))[0];
+   if(!prev)return '<div class="history-item" style="border-left:5px solid #94a3b8;margin:14px 0"><b>Aucun contrôle précédent</b><p>Aucune anomalie antérieure enregistrée.</p></div>';
+   const marks=Array.isArray(prev.marks)?prev.marks:[];const selected='avant';
+   const tabs=Object.keys(viewLabels).map(k=>'<button type="button" class="'+(k===selected?'':'secondary')+'" style="margin:3px" onclick="document.getElementById(\'previousReferenceDrawing\').innerHTML=renderPreviousReference('+Number(vehicleId)+',\''+k+'\')">'+viewLabels[k]+'</button>').join('');
+   const colorList=marks.length?marks.map(m=>'<li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+markColor(m)+';border:1px solid #334155;margin-right:7px"></span>'+esc(m.type||'Défaut')+' — '+esc(viewLabels[m.view]||m.view||'Vue non précisée')+'</li>').join(''):'<li>Aucun repère enregistré.</li>';
+   const issue=prev.status==='Dégâts'||marks.length>0||!!prev.notes;
+   return '<div class="history-item" style="border-left:5px solid '+(issue?'#eab308':'#16a34a')+';margin:14px 0;background:#fffbeb;padding:12px"><b>Repères du contrôle précédent — '+esc(formatHistoryDate(prev.date))+'</b><p>DSP : '+esc(prev.inspector||'—')+' · État : '+esc(prev.status||'—')+'</p><p><b>Visualiser les anciens points sur le véhicule :</b></p><div style="display:flex;flex-wrap:wrap;gap:4px">'+tabs+'</div><div id="previousReferenceDrawing">'+window.renderPreviousReference(vehicleId,selected)+'</div><p><b>Récapitulatif des anciens défauts :</b></p><ul>'+colorList+'</ul><p style="font-size:13px;color:#854d0e;font-weight:700">Attention : ces anciens points sont affichés uniquement comme repères. Ils ne sont pas copiés dans le nouveau contrôle. Seuls les nouveaux points ajoutés seront enregistrés.</p></div>';
+ };
+ const originalRenderDrawing=window.renderDrawing;
+ window.renderDrawing=function(){
+   originalRenderDrawing();
+   const v=vehicles.find(x=>String(x.id)===String(currentVehicle));if(!v)return;
+   const prev=checks.filter(c=>String(c.vehicleId)===String(currentVehicle)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id))[0];
+   if(!prev)return;
+   const oldMarks=(Array.isArray(prev.marks)?prev.marks:[]).filter(m=>m.view===activeView);
+   if(!oldMarks.length)return;
+   const host=document.querySelector('#drawing .drawing-content');const live=document.getElementById('markSvg');if(!host||!live)return;
+   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 500 340');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-label','Anciens repères du contrôle précédent');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none';
+   oldMarks.forEach(m=>{const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',Math.max(0,Math.min(500,Number(m.x)||0)));c.setAttribute('cy',Math.max(0,Math.min(340,Number(m.y)||0)));c.setAttribute('r','11');c.setAttribute('fill',markColor(m));c.setAttribute('stroke','#111827');c.setAttribute('stroke-width','3');c.setAttribute('stroke-dasharray','4 2');c.setAttribute('opacity','.72');svg.appendChild(c)});
+   host.insertBefore(svg,live);
+ };
+})();
+</script>
 </body></html>
