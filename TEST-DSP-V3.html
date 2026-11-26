@@ -339,20 +339,28 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
   const v=vehicles.find(x=>String(x.id)===String(id));if(!v)return;
   const arr=checks.filter(c=>String(c.vehicleId)===String(id)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||Number(b.id)-Number(a.id));
   switchTab('history');const box=$('globalHistory');box.dataset.mode='vehicle';box.dataset.vehicle=id;
-  const draw=q=>{hq=q;const list=arr.filter(c=>!q||norm([c.date,c.inspector,c.driver,c.status,c.notes].join(' ')).includes(norm(q)));box.innerHTML='<button class="secondary" onclick="switchTab(\'fleet\')">← Retour à la flotte</button><h2>Historique — '+esc(v.name)+'</h2><p class="muted">'+esc(v.plate||'')+' · '+list.length+' contrôle(s)</p><input id="vhSearch" class="dsp-search" placeholder="Rechercher dans cet historique…" value="'+esc(q)+'"><div id="vhResults">'+list.map(c=>'<button class="history-item" style="display:block;width:100%;text-align:left;margin:8px 0" onclick="openVehicleHistoryCheck('+Number(c.id)+','+Number(id)+')"><b>'+esc(formatHistoryDate(c.date))+' · '+esc(c.status||'—')+'</b><div class="muted">DSP '+esc(c.inspector||'—')+' · Conducteur '+esc(c.driver||'—')+'</div><p>'+esc((c.marks||[]).map(m=>m.type+' '+m.view).join(', ')||c.notes||'Aucun défaut')+'</p></button>').join('')||'<p>Aucun contrôle.</p>'+'</div>';const input=$('vhSearch');input.oninput=()=>draw(input.value);};
+  const draw=q=>{
+   hq=q;
+   const list=arr.filter(c=>!q||norm([c.date,c.inspector,c.driver,c.status,c.notes].join(' ')).includes(norm(q)));
+   const cards=list.map(c=>`<button class="history-item" style="display:block;width:100%;text-align:left;margin:8px 0" onclick="openVehicleHistoryCheck(${Number(c.id)},${Number(id)})"><b>${esc(formatHistoryDate(c.date))} · ${esc(c.status||'—')}</b><div class="muted">DSP ${esc(c.inspector||'—')} · Conducteur ${esc(c.driver||'—')}</div><p>${esc((c.marks||[]).map(m=>m.type+' '+m.view).join(', ')||c.notes||'Aucun défaut')}</p></button>`).join('');
+   box.innerHTML=`<button class="secondary" onclick="switchTab('fleet')">← Retour à la flotte</button><h2>Historique — ${esc(v.name)}</h2><p class="muted">${esc(v.plate||'')} · ${list.length} contrôle(s)</p><input id="vhSearch" class="dsp-search" placeholder="Rechercher dans cet historique…" value="${esc(q)}"><div id="vhResults">${cards||'<p>Aucun contrôle.</p>'}</div>`;
+   $('vhSearch').oninput=e=>draw(e.target.value);
+  };
   draw(hq);
  };
- window.openVehicleHistoryCheck=function(checkId,vehicleId){renderHistoryCheckView(checkId,'avant');const b=document.createElement('button');b.className='secondary';b.textContent='← Retour à l’historique du véhicule';b.onclick=()=>showVehicleHistory(vehicleId);$('globalHistory').prepend(b);};
- const oldVehicles=window.renderVehicles;
+ window.openVehicleHistoryCheck=function(checkId,vehicleId){
+  renderHistoryCheckView(checkId,'avant');
+  const back=document.createElement('button');back.className='secondary';back.textContent='← Retour à l’historique du véhicule';back.onclick=()=>showVehicleHistory(vehicleId);$('globalHistory').prepend(back);
+ };
  window.renderVehicles=function(){
-  $('vehicleList').innerHTML=vehicles.filter(v=>(v.name+' '+(v.plate||'')).toLowerCase().includes(($('search')?.value||'').toLowerCase())).map(v=>'<div class="item" style="cursor:pointer" onclick="showVehicleHistory('+Number(v.id)+')"><div><h3>'+esc(v.name)+'</h3><div class="muted">'+esc(v.plate||'Plaque non renseignée')+' · '+esc(modelName(v.model))+'</div><small>Toucher pour voir l’historique</small></div><div class="top-actions"><button onclick="event.stopPropagation();openDetail('+Number(v.id)+')">Faire un contrôle</button><button class="secondary" onclick="event.stopPropagation();editVehicle('+Number(v.id)+')">Modifier</button><button class="danger" onclick="event.stopPropagation();deleteVehicle('+Number(v.id)+')">Supprimer</button></div></div>').join('')||'<div class="panel muted">Aucun véhicule ajouté.</div>';
+  const rows=vehicles.filter(v=>(v.name+' '+(v.plate||'')).toLowerCase().includes(($('search')?.value||'').toLowerCase()));
+  $('vehicleList').innerHTML=rows.map(v=>`<div class="item" style="cursor:pointer" onclick="showVehicleHistory(${Number(v.id)})"><div><h3>${esc(v.name)}</h3><div class="muted">${esc(v.plate||'Plaque non renseignée')} · ${esc(modelName(v.model))}</div><small>Toucher pour voir l’historique</small></div><div class="top-actions"><button onclick="event.stopPropagation();openDetail(${Number(v.id)})">Faire un contrôle</button><button class="secondary" onclick="event.stopPropagation();editVehicle(${Number(v.id)})">Modifier</button><button class="danger" onclick="event.stopPropagation();deleteVehicle(${Number(v.id)})">Supprimer</button></div></div>`).join('')||'<div class="panel muted">Aucun véhicule ajouté.</div>';
  };
  const oldStart=window.startCheck;
  window.startCheck=function(){
   oldStart();let input=$('dailyPlateSearch');
   if(!input){input=document.createElement('input');input.id='dailyPlateSearch';input.className='dsp-search';input.placeholder='Rechercher par véhicule ou immatriculation…';$('dailyList').parentNode.insertBefore(input,$('dailyList'));}
-  input.value=dq;input.oninput=()=>{dq=input.value;document.querySelectorAll('#dailyList .veh').forEach(el=>el.style.display=norm(el.innerText).includes(norm(dq))?'':'none')};
-  input.oninput();
+  input.value=dq;input.oninput=()=>{dq=input.value;document.querySelectorAll('#dailyList .veh').forEach(el=>el.style.display=norm(el.innerText).includes(norm(dq))?'':'none')};input.oninput();
  };
  function outstanding(id){
   const arr=checks.filter(c=>String(c.vehicleId)===String(id)).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||Number(a.id)-Number(b.id));
@@ -360,9 +368,10 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
   return arr.slice(clear+1).filter(c=>c.status==='Dégâts'||(c.marks||[]).length||String(c.notes||'').trim());
  }
  window.renderPreviousCheck=function(id){
-  const arr=outstanding(id);if(!arr.length)return '<div class="history-item" style="border-left:5px solid #16a34a;background:#f0fdf4;padding:12px"><b>Aucune ancienne anomalie en attente</b></div>';
-  const list=arr.map(c=>'<li><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(c.status||'Anomalie')+' : '+esc((c.marks||[]).map(m=>m.type+' ('+m.view+')').join(', ')||c.notes||'Dégâts signalés')+'</li>').join('');
-  return '<div class="history-item" style="border-left:5px solid #ea580c;background:#fff7ed;padding:12px"><b>⚠️ Anomalies anciennes à vérifier</b><p>'+arr.length+' contrôle(s) avec anomalie depuis le dernier contrôle OK sans défaut :</p><ul>'+list+'</ul><p class="small">Elles restent signalées tant qu’un contrôle ultérieur n’est pas enregistré OK sans repère.</p></div>';
+  const arr=outstanding(id);
+  if(!arr.length)return '<div class="history-item" style="border-left:5px solid #16a34a;background:#f0fdf4;padding:12px"><b>Aucune ancienne anomalie en attente</b></div>';
+  const list=arr.map(c=>`<li><b>${esc(formatHistoryDate(c.date))}</b> — ${esc(c.status||'Anomalie')} : ${esc((c.marks||[]).map(m=>m.type+' ('+m.view+')').join(', ')||c.notes||'Dégâts signalés')}</li>`).join('');
+  return `<div class="history-item" style="border-left:5px solid #ea580c;background:#fff7ed;padding:12px"><b>⚠️ Anomalies anciennes à vérifier</b><p>${arr.length} contrôle(s) avec anomalie depuis le dernier contrôle OK sans défaut :</p><ul>${list}</ul><p class="small">Elles restent signalées tant qu’un contrôle ultérieur n’est pas enregistré OK sans repère.</p></div>`;
  };
  const style=document.createElement('style');style.textContent='.dsp-search{width:100%;padding:12px;border:1px solid #aebdce;border-radius:10px;margin:10px 0 14px;font-size:16px;background:#fff;color:#172033}';document.head.appendChild(style);
 })();
