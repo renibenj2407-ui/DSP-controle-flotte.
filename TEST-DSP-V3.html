@@ -17,7 +17,7 @@ input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-ra
 .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}.veh{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}.top-actions{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.danger{background:#fee2e2;color:#991b1b}.palette button{margin:4px}.palette .sel{outline:3px solid var(--navy)}.drawing{position:relative;min-height:220px;background:#eaf0f8;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center}.drawing img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;display:block}.drawing-content>svg{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2;pointer-events:auto;touch-action:manipulation;cursor:crosshair}.pin{stroke:#fff;stroke-width:2;cursor:pointer}.history-item{border-top:1px solid var(--line);padding:12px 0}.history-item img{max-width:100%;border-radius:10px;margin-top:8px}.status{padding:9px 12px;border-radius:10px;background:#eff6ff;margin:8px 0}.small{font-size:13px}.foot{padding:20px;text-align:center;color:var(--muted)}.notice{background:#fffbeb;color:#854d0e;padding:12px;border-radius:10px;font-size:13px;margin:14px 0}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><header><h1>🚐 DSP — Contrôle de flotte</h1><p>État des véhicules · Contrôle quotidien · Suivi des dégâts</p></header>
 <main>
-<section id="welcome" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:linear-gradient(145deg,#102b57,#24558b);color:white"><img src="https://www.multicourses.fr/index.html/images/Other/Logo-Multicourses-avec-contour.png" alt="Logo officiel Multicourses" style="display:block;width:min(82vw,420px);max-height:190px;object-fit:contain;margin:0 auto 18px"><p style="margin:0;color:white;font-weight:600">Contrôle de flotte</p><button type="button" onclick="this.parentElement.remove()" style="margin-top:24px;background:white;color:#12315d;font-weight:800;padding:14px 26px;border-radius:12px">Entrer dans l’application</button></section><section id="auth" class="panel form"><h2>Connexion équipe</h2><p class="muted">Connectez-vous avec le compte partagé de l'équipe.</p><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="Adresse e-mail"><label>Mot de passe</label><input id="password" type="password" autocomplete="current-password" placeholder="Mot de passe"><div class="actions"><button id="loginBtn">Se connecter</button><button class="secondary" id="signupBtn">Créer le compte</button></div><div id="authMsg" class="status muted"></div></section>
+<section id="welcome" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:linear-gradient(145deg,#102b57,#24558b);color:white"><img src="https://www.multicourses.fr/index.html/images/Other/Logo-Multicourses-avec-contour.png" alt="Logo officiel Multicourses" style="display:block;width:min(82vw,420px);max-height:190px;object-fit:contain;margin:0 auto 18px" onerror="this.style.display='none';document.getElementById('welcomeBrandFallback').style.display='block'"><div id="welcomeBrandFallback" style="display:none;font-size:clamp(28px,8vw,44px);font-weight:900;letter-spacing:2px;margin:0 auto 18px">MULTICOURSES</div><p style="margin:0;color:white;font-weight:600">Contrôle de flotte</p><button type="button" onclick="this.parentElement.remove()" style="margin-top:24px;background:white;color:#12315d;font-weight:800;padding:14px 26px;border-radius:12px">Entrer dans l’application</button></section><section id="auth" class="panel form"><h2>Connexion équipe</h2><p class="muted">Connectez-vous avec le compte partagé de l'équipe.</p><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="Adresse e-mail"><label>Mot de passe</label><input id="password" type="password" autocomplete="current-password" placeholder="Mot de passe"><div class="actions"><button id="loginBtn">Se connecter</button><button class="secondary" id="signupBtn">Créer le compte</button></div><div id="authMsg" class="status muted"></div></section>
 <section id="app" class="hidden">
 <section id="home">
  <div class="stats"><div class="stat"><b id="total">0</b><span class="muted">Véhicules</span></div><div class="stat"><b id="checked">0</b><span class="muted">Contrôlés aujourd'hui</span></div><div class="stat"><b id="issues">0</b><span class="muted">Avec dégâts</span></div></div>
@@ -188,5 +188,38 @@ sb.auth.onAuthStateChange((_event,session)=>{if(_event==='SIGNED_IN'||_event==='
     else if (leaving === 'vehicle-form') originals.closeVehicleForm();
   });
 })();
+</script>
+
+<script>
+/* Historique : réouverture visuelle complète d'un contrôle en lecture seule */
+window.renderHistoryCheckView = function(id, view){
+ const c=checks.find(x=>String(x.id)===String(id)); if(!c)return;
+ const v=vehicles.find(x=>String(x.id)===String(c.vehicleId));
+ const model=v?.model||'primastar';
+ const labels={avant:'Avant',arriere:'Arrière',gauche:'Côté gauche',droite:'Côté droit',cabine:'Cabine',chargement:'Chargement'};
+ const modelPhotos=photos[model]||{};
+ const selected=view||'avant';
+ const src=(selected==='droite'?(modelPhotos.droite||modelPhotos.gauche):modelPhotos[selected])||'';
+ const marks=(c.marks||[]).filter(m=>m.view===selected);
+ const pins=marks.map(m=>'<circle cx="'+Math.max(0,Math.min(500,Number(m.x)||0))+'" cy="'+Math.max(0,Math.min(340,Number(m.y)||0))+'" r="10" fill="'+(/^#[0-9a-fA-F]{6}$/.test(m.color||'')?m.color:({'cassé':'#ef2929','rayé':'#eab308','manquant':'#22c55e','non fonctionnel':'#111827'}[m.type]||'#64748b'))+'" stroke="#fff" stroke-width="2"/>').join('');
+ const tabs=Object.keys(labels).map(k=>'<button type="button" class="'+(k===selected?'':'secondary')+'" onclick="renderHistoryCheckView(\''+String(id).replace(/'/g,'\\\'')+'\',\''+k+'\')">'+labels[k]+'</button>').join('');
+ const details=marks.length?marks.map(m=>'<li><b>'+esc(m.type||'Défaut')+'</b> — '+esc(labels[m.view]||m.view||'Vue non précisée')+' · position '+Math.round(Number(m.x)||0)+', '+Math.round(Number(m.y)||0)+'</li>').join(''):'<li>Aucun repère enregistré sur cette vue.</li>';
+ $('globalHistory').innerHTML=
+ '<button type="button" class="secondary" onclick="openHistoryDay(\''+esc(historyDayKey(c))+'\')">← Retour aux contrôles du jour</button>'+
+ '<h2>Contrôle complet — consultation</h2>'+
+ '<div class="panel"><h3>'+esc(v?.name||'Véhicule supprimé')+'</h3><p class="muted">'+esc(v?.plate||'Plaque non renseignée')+' · '+esc(modelName(model))+'</p>'+
+ '<p><b>Date :</b> '+esc(formatHistoryDate(c.date))+' · <b>État :</b> '+esc(c.status||'—')+'</p>'+
+ '<p><b>DSP :</b> '+esc(c.inspector||'—')+' · <b>Conducteur :</b> '+esc(c.driver||'—')+'</p>'+
+ '<h3>Vues du véhicule</h3><div class="actions" style="display:flex;flex-wrap:wrap;gap:6px">'+tabs+'</div>'+
+ '<p class="muted">'+esc(labels[selected])+' — repères enregistrés : '+marks.length+'</p>'+
+ '<div class="drawing" style="position:relative;width:100%;aspect-ratio:500/340;min-height:220px;background:#f1f5f9;overflow:hidden;display:flex;align-items:center;justify-content:center">'+
+ (src?'<div style="position:relative;width:100%;height:100%;'+(selected==='droite'?'transform:scaleX(-1);':'')+'"><img src="'+esc(src)+'" alt="'+esc(labels[selected])+'" style="width:100%;height:100%;object-fit:contain"><svg viewBox="0 0 500 340" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">'+pins+'</svg></div>':'<p class="muted">Schéma/photo non disponible pour cette vue de ce modèle.</p>')+
+ '</div><h3>Repères de cette vue</h3><ul>'+details+'</ul>'+
+ '<h3>Observations</h3><p>'+(c.notes?esc(c.notes):'Aucune observation.')+'</p>'+
+ '<h3>Propreté</h3><p><b>État :</b> '+esc(c.cleanStatus||'—')+'</p><p><b>Commentaire :</b> '+(c.cleanNote?esc(c.cleanNote):'Aucun commentaire.')+'</p>'+
+ (c.photo?'<h3>Photo jointe au contrôle</h3><img src="'+esc(c.photo)+'" alt="Photo du contrôle" style="display:block;width:100%;max-width:600px;border-radius:10px">':'')+
+ '<p class="muted small">Consultation uniquement : les données de ce contrôle ne peuvent pas être modifiées depuis l’historique.</p></div>';
+};
+window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');};
 </script>
 </body></html>
