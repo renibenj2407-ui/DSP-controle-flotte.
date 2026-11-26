@@ -448,6 +448,19 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
   const back=document.createElement('button');back.type='button';back.className='secondary';back.textContent='← Tous les contrôles de ce véhicule';back.onclick=()=>window.renderVehicleHistoryList(vehicleId);
   const identity=document.createElement('span');identity.className='muted';identity.style.cssText='align-self:center';identity.textContent=(v?.name||'Véhicule')+' · '+arr.length+' contrôle(s) dans l’historique';
   nav.append(back,identity);box.prepend(nav);
+
+  // Un défaut reste signalé jusqu'à un contrôle ultérieur OK sans repère.
+  const chronological=[...arr].reverse();
+  let lastClear=-1;
+  chronological.forEach((c,i)=>{if(c.status==='OK'&&!(Array.isArray(c.marks)?c.marks:[]).length)lastClear=i;});
+  const pending=chronological.slice(lastClear+1).filter(c=>c.status==='Dégâts'||(Array.isArray(c.marks)?c.marks:[]).length||String(c.notes||'').trim());
+  const alert=document.createElement('div');
+  alert.style.cssText='margin:0 0 14px;padding:12px;border-radius:10px;border-left:5px solid '+(pending.length?'#ea580c':'#16a34a')+';background:'+(pending.length?'#fff7ed':'#f0fdf4')+';color:#172033';
+  alert.innerHTML=pending.length
+   ?'<b>⚠️ Défauts / dégâts encore à vérifier</b><p>'+pending.length+' contrôle(s) signalent une anomalie non encore levée par un contrôle OK sans repère.</p><ul>'+pending.map(c=>'<li><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(c.status||'Anomalie')+' : '+esc((c.marks||[]).map(m=>(m.type||'Défaut')+' ('+(m.view||'vue non précisée')+')').join(', ')||c.notes||'Dégâts signalés')+'</li>').join('')+'</ul><small>Ces anomalies restent visibles même si elles datent de plusieurs jours. Elles ne disparaissent qu’après un contrôle ultérieur enregistré OK sans repère.</small>'
+   :'<b>✓ Aucun défaut ancien en attente</b><p>Le dernier état connu ne signale pas d’anomalie non résolue.</p>';
+  nav.after(alert);
+
   const current=arr.findIndex(c=>String(c.id)===String(checkId));
   const older=arr.slice(current+1);
   if(older.length){
