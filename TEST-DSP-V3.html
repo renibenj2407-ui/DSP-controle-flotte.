@@ -53,7 +53,7 @@ async function loadData(){
     if(c.error)throw new Error('TABLE checks — code '+(c.error.code||'inconnu')+' — '+(c.error.message||'Erreur de lecture')+' — '+(c.error.details||''));
     vehicles=v.data||[];
     checks=(c.data||[]).map(row=>({...row,vehicleId:row.vehicle_id,date:row.check_date,inspector:row.inspector,driver:row.driver,marks:row.marks||[],cleanStatus:row.clean_status,cleanNote:row.clean_note,photo:row.photo_url}));
-    renderVehicles();renderGlobalHistory();updateStats();
+    renderVehicles();renderGlobalHistory();updateStats();wireStatsClicks();
   }catch(err){
     const detail=String(err?.message||err||'Erreur inconnue');
     if(historyBox)historyBox.innerHTML='<div class="status">Chargement impossible : '+esc(detail)+'<p><button type="button" onclick="loadData()">Réessayer</button></p><small>Le compte est connecté, mais les tables ou leurs autorisations doivent être vérifiées.</small></div>';
@@ -65,6 +65,22 @@ async function loadData(){
 function openVehicleForm(){$('addVehiclePane').classList.remove('hidden');$('addVehiclePane').scrollIntoView({behavior:'smooth'});$('vehicleName').focus()}
 function closeVehicleForm(){$('addVehiclePane').classList.add('hidden');editingVehicleId=null;$('addVehicle').textContent='Ajouter à la flotte';$('addVehiclePane').querySelector('h2').textContent='Ajouter un véhicule';$('addVehiclePane').scrollIntoView({behavior:'smooth',block:'start'})}
 function switchTab(t){$('fleetPane').classList.toggle('hidden',t!=='fleet');$('historyPane').classList.toggle('hidden',t!=='history');$('tabFleet').classList.toggle('active',t==='fleet');$('tabHistory').classList.toggle('active',t==='history');if(t==='history')renderGlobalHistory()}
+
+function wireStatsClicks(){
+ const bind=(id,type)=>{const el=document.getElementById(id)?.parentElement;if(el){el.style.cursor="pointer";el.setAttribute("role","button");el.onclick=()=>showStatDetails(type)}};
+ bind("total","vehicles");bind("checked","checks");bind("issues","issues");
+}
+window.showStatDetails=function(type){
+ switchTab(type==="vehicles"?"fleet":"history");
+ if(type==="vehicles"){$("search").value="";renderVehicles();return}
+ const arr=checks.filter(c=>c.date===today()&&(type==="checks"||c.status==="Dégâts"||(c.marks||[]).length>0));
+ const box=$("globalHistory");box.innerHTML="";
+ const h=document.createElement("h2");h.textContent=type==="checks"?"Contrôles du jour":"Anomalies et dégâts du jour";box.appendChild(h);
+ const back=document.createElement("button");back.className="secondary";back.textContent="Toutes les journées";back.onclick=renderGlobalHistory;box.appendChild(back);
+ if(!arr.length){const p=document.createElement("p");p.textContent="Aucun résultat pour aujourd’hui.";box.appendChild(p);return}
+ arr.forEach(c=>{const v=vehicles.find(x=>String(x.id)===String(c.vehicleId));const b=document.createElement("button");b.type="button";b.className="history-item";b.style.display="block";b.style.width="100%";b.style.textAlign="left";b.textContent=(v?.name||"Véhicule supprimé")+" · "+(c.status||"")+" — DSP "+(c.inspector||"—")+" — "+(c.marks||[]).map(m=>m.type).join(", ");b.onclick=()=>openHistoryCheck(c.id);box.appendChild(b)});
+};
+
 function updateStats(){$('total').textContent=vehicles.length;$('checked').textContent=checks.filter(c=>c.date===today()).length;$('issues').textContent=checks.filter(c=>c.date===today()&&(c.status==='Dégâts'||(c.marks||[]).length>0)).length}
 let dailyDraft={},detailReturnTo='home';window.startCheck=function(){if(!vehicles.length){alert('Aucun véhicule dans la flotte. Ajoute d’abord un véhicule.');return}$('detail').classList.add('hidden');$('home').classList.add('hidden');$('dailyPane').classList.remove('hidden');$('checkDate').textContent='Date : '+today();dailyDraft={};$('dailyList').innerHTML=vehicles.map(v=>{let old=checks.filter(c=>c.vehicleId===v.id&&c.date===today()).slice(-1)[0];dailyDraft[v.id]=old?.status||'À contrôler';return `<div class="veh"><b>${esc(v.name)}</b> — ${esc(v.plate||'')}<label>État du contrôle</label><select onchange="dailyDraft[${v.id}]=this.value"><option ${dailyDraft[v.id]==='À contrôler'?'selected':''}>À contrôler</option><option ${dailyDraft[v.id]==='OK'?'selected':''}>OK</option><option ${dailyDraft[v.id]==='Dégâts'?'selected':''}>Dégâts</option></select><button type="button" class="secondary" onclick="openDetail(${v.id})">Fiche détaillée / dégâts</button></div>`}).join('');$('dailyPane').scrollIntoView({behavior:'smooth',block:'start'})};
 function closeDaily(){$('dailyPane').classList.add('hidden');$('home').classList.remove('hidden');$('home').scrollIntoView({behavior:'smooth',block:'start'})}
