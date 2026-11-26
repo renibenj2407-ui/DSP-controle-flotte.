@@ -95,7 +95,7 @@ window.showStatDetails=function(type){
 };
 
 function updateStats(){$('total').textContent=vehicles.length;$('checked').textContent=checks.filter(c=>c.date===today()).length;$('issues').textContent=checks.filter(c=>c.date===today()&&(c.status==='Dégâts'||(c.marks||[]).length>0)).length}
-let dailyDraft={},detailReturnTo='home';window.startCheck=function(){if(!vehicles.length){alert('Aucun véhicule dans la flotte. Ajoute d’abord un véhicule.');return}$('detail').classList.add('hidden');$('home').classList.add('hidden');$('dailyPane').classList.remove('hidden');$('checkDate').textContent='Date : '+today();dailyDraft={};$('dailyList').innerHTML=vehicles.map(v=>{let old=checks.filter(c=>c.vehicleId===v.id&&c.date===today()).slice(-1)[0];dailyDraft[v.id]=old?.status||'À contrôler';return `<div class="veh"><b>${esc(v.name)}</b> — ${esc(v.plate||'')}<label>État du contrôle</label><select onchange="dailyDraft[${v.id}]=this.value"><option ${dailyDraft[v.id]==='À contrôler'?'selected':''}>À contrôler</option><option ${dailyDraft[v.id]==='OK'?'selected':''}>OK</option><option ${dailyDraft[v.id]==='Dégâts'?'selected':''}>Dégâts</option></select><button type="button" class="secondary" onclick="openDetail(${v.id})">Fiche détaillée / dégâts</button></div>`}).join('');$('dailyPane').scrollIntoView({behavior:'smooth',block:'start'})};
+let dailyDraft={},detailReturnTo='home';window.startCheck=function(){if(!vehicles.length){alert('Aucun véhicule dans la flotte. Ajoute d’abord un véhicule.');return}$('detail').classList.add('hidden');$('home').classList.add('hidden');$('dailyPane').classList.remove('hidden');$('checkDate').textContent='Date : '+today();dailyDraft={};$('dailyList').innerHTML=vehicles.map(v=>{let old=checks.filter(c=>c.vehicleId===v.id&&c.date===today()).slice(-1)[0];dailyDraft[v.id]=old?.status||'À contrôler';return `<div class="veh" data-vehicle-id="${v.id}"><b>${esc(v.name)}</b> — ${esc(v.plate||'')}<label>État du contrôle</label><select onchange="dailyDraft[${v.id}]=this.value"><option ${dailyDraft[v.id]==='À contrôler'?'selected':''}>À contrôler</option><option ${dailyDraft[v.id]==='OK'?'selected':''}>OK</option><option ${dailyDraft[v.id]==='Dégâts'?'selected':''}>Dégâts</option></select><button type="button" class="secondary" onclick="openDetail(${v.id})">Fiche détaillée / dégâts</button></div>`}).join('');$('dailyPane').scrollIntoView({behavior:'smooth',block:'start'})};
 function closeDaily(){$('dailyPane').classList.add('hidden');$('home').classList.remove('hidden');$('home').scrollIntoView({behavior:'smooth',block:'start'})}
 $('startCheckBtn').addEventListener('click',()=>window.startCheck());
 async function saveDailyChecks(){let who=$('dailyInspector').value.trim();if(!who){alert('Indique le nom du DSP.');return}let driver=$('dailyDriver').value.trim();if(!driver){alert('Le nom du chauffeur est obligatoire.');$('dailyDriver').focus();return}for(const v of vehicles){let status=dailyDraft[v.id];if(!status||status==='À contrôler')continue;let payload={id:Date.now()+Number(v.id),vehicle_id:v.id,check_date:today(),inspector:who,driver:driver,status,notes:'',marks:[],clean_status:'',clean_note:'',photo_url:null};let r=await sb.from('checks').insert(payload);if(r.error){alert('Erreur : '+r.error.message);return}}$('dailyPane').classList.add('hidden');await loadData();alert('Contrôles du jour enregistrés.')}
@@ -130,7 +130,7 @@ function renderDrawing(){
 }
 window.removeMark=i=>{draftMarks.splice(i,1);renderDrawing()};
 function renderVehicleHistory(arr){return arr.length?arr.map(c=>`<div class="history-item"><b>${esc(c.date)} — ${esc(c.status)}</b><div class="muted">DSP ${esc(c.inspector||'—')} · Conducteur ${esc(c.driver||'—')}</div>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p>Repères : ${(c.marks||[]).map(m=>esc(m.type)).join(', ')||'Aucun'} · Propreté : ${esc(c.cleanStatus||'—')}${c.cleanNote?' — '+esc(c.cleanNote):''}</p>${c.photo?`<img src="${c.photo}" alt="Photo du contrôle">`:''}</div>`).join(''):'<p class="muted">Pas encore de contrôle enregistré.</p>'}
-window.saveCheck=async()=>{let dsp=$('inspector').value.trim();if(!dsp){alert('Indique le nom du DSP.');return}let driver=$('driver').value.trim();if(!driver){alert('Le nom du chauffeur est obligatoire.');$('driver').focus();return}let file=$('photoInput').files[0];const commit=async(photo)=>{let payload={id:Date.now(),vehicle_id:currentVehicle,check_date:today(),inspector:dsp,driver:driver,status:$('checkStatus').value,notes:$('notes').value.trim(),marks:draftMarks,clean_status:$('cleanStatus').value,clean_note:$('cleanNote').value.trim(),photo_url:photo||null};let r=await sb.from('checks').insert(payload);if(r.error){alert('Erreur enregistrement : '+r.error.message);return}alert('Contrôle enregistré !');await loadData();openDetail(currentVehicle)};if(file){if(file.size>4*1024*1024){alert('Photo trop lourde (max 4 Mo).');return}let fr=new FileReader();fr.onload=()=>commit(fr.result);fr.readAsDataURL(file)}else commit(null)};
+window.saveCheck=async()=>{let dsp=$('inspector').value.trim();if(!dsp){alert('Indique le nom du DSP.');return}let driver=$('driver').value.trim();if(!driver){alert('Le nom du chauffeur est obligatoire.');$('driver').focus();return}let file=$('photoInput').files[0];const commit=async(photo)=>{let payload={id:Date.now(),vehicle_id:currentVehicle,check_date:today(),inspector:dsp,driver:driver,status:$('checkStatus').value,notes:$('notes').value.trim(),marks:draftMarks,clean_status:$('cleanStatus').value,clean_note:$('cleanNote').value.trim(),photo_url:photo||null};let r=await sb.from('checks').insert(payload);if(r.error){alert('Erreur enregistrement : '+r.error.message);return}alert('Contrôle enregistré !');const savedVehicleId=String(currentVehicle),savedStatus=payload.status;if(typeof dailyDraft!=='undefined')dailyDraft[savedVehicleId]=savedStatus;await loadData();const dailyRow=document.querySelector('#dailyList .veh[data-vehicle-id="'+savedVehicleId+'"]');if(dailyRow){const dailySelect=dailyRow.querySelector('select');if(dailySelect)dailySelect.value=savedStatus;}openDetail(currentVehicle)};if(file){if(file.size>4*1024*1024){alert('Photo trop lourde (max 4 Mo).');return}let fr=new FileReader();fr.onload=()=>commit(fr.result);fr.readAsDataURL(file)}else commit(null)};
 function formatHistoryDate(date){if(!date)return 'Date inconnue';const p=String(date).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(date)}
 function historyDayKey(c){return c.date||'Date inconnue'}
 function renderGlobalHistory(){
@@ -471,6 +471,27 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
    section.append(summary,list);
    const panel=box.querySelector('.panel');if(panel)panel.append(section);else box.append(section);
   }
+ };
+})();
+</script>
+
+<script id="dsp-history-back-persistent">
+(function(){
+ const original=window.renderHistoryCheckView;
+ if(typeof original!=='function')return;
+ window.renderHistoryCheckView=function(id,view){
+  original(id,view);
+  const box=document.getElementById('globalHistory');
+  const c=(window.checks||[]).find(x=>String(x.id)===String(id));
+  if(!box||!c||box.dataset.mode!=='vehicle')return;
+  const vehicleId=box.dataset.vehicle||c.vehicleId||c.vehicle_id;
+  if(!vehicleId)return;
+  const back=document.createElement('button');
+  back.type='button';back.className='secondary';
+  back.textContent='← Retour à l’historique du véhicule';
+  back.style.cssText='display:block;width:100%;margin:0 0 12px';
+  back.onclick=function(){window.renderVehicleHistoryList(vehicleId);};
+  box.prepend(back);
  };
 })();
 </script>
