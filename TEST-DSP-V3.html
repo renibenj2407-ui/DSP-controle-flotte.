@@ -305,4 +305,65 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
  }
 })();
 </script>
+
+<script>
+/* Rapport journalier complet : fichier HTML partageable par e-mail depuis Android */
+(function(){
+ const reportEscape=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+ const reportLabels={avant:'Avant',arriere:'Arrière',gauche:'Côté gauche',droite:'Côté droit',cabine:'Cabine',chargement:'Chargement'};
+ const reportColor=m=>/^#[0-9a-fA-F]{6}$/.test(m.color||'')?m.color:({'cassé':'#ef2929','rayé':'#eab308','manquant':'#22c55e','non fonctionnel':'#111827'}[m.type]||'#64748b');
+ function buildDailyReport(day){
+   const rows=checks.filter(c=>historyDayKey(c)===day).sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||'')));
+   const detail=rows.map((c,index)=>{
+     const v=vehicles.find(x=>String(x.id)===String(c.vehicleId));
+     const model=v?.model||'';
+     const modelViews=photos[model]||{};
+     const marks=Array.isArray(c.marks)?c.marks:[];
+     const views=Object.keys(reportLabels).map(view=>{
+       const vm=marks.filter(m=>m.view===view);
+       if(!vm.length)return '';
+       const src=(view==='droite'?(modelViews.droite||modelViews.gauche):modelViews[view])||'';
+       const pins=vm.map(m=>'<circle cx="'+Math.max(0,Math.min(500,Number(m.x)||0))+'" cy="'+Math.max(0,Math.min(340,Number(m.y)||0))+'" r="10" fill="'+reportColor(m)+'" stroke="#fff" stroke-width="2"/>').join('');
+       return '<section><h4>'+reportLabels[view]+'</h4>'+(src?'<div class="vehicle-view"><img src="'+reportEscape(src)+'" alt="'+reportLabels[view]+'"><svg viewBox="0 0 500 340">'+pins+'</svg></div>':'<p>Visuel du véhicule non disponible pour cette vue.</p>')+'</section>';
+     }).join('');
+     const markList=marks.length?'<ul>'+marks.map(m=>'<li><i style="background:'+reportColor(m)+'"></i><b>'+reportEscape(m.type||'Défaut')+'</b> — '+reportEscape(reportLabels[m.view]||m.view||'Vue non précisée')+' — position '+Math.round(Number(m.x)||0)+', '+Math.round(Number(m.y)||0)+'</li>').join('')+'</ul>':'<p>Aucun repère de défaut enregistré.</p>';
+     return '<article><h2>Contrôle '+(index+1)+' — '+reportEscape(v?.name||'Véhicule supprimé')+'</h2><p><b>Immatriculation :</b> '+reportEscape(v?.plate||'Non renseignée')+' · <b>Modèle :</b> '+reportEscape(modelName(model))+'</p><p><b>Résultat :</b> '+reportEscape(c.status||'—')+' · <b>DSP :</b> '+reportEscape(c.inspector||'—')+' · <b>Chauffeur :</b> '+reportEscape(c.driver||'—')+'</p><h3>Observations</h3><p>'+reportEscape(c.notes||'Aucune observation.')+'</p><h3>Propreté</h3><p><b>État :</b> '+reportEscape(c.cleanStatus||'—')+' · <b>Commentaire :</b> '+reportEscape(c.cleanNote||'Aucun commentaire.')+'</p><h3>Repères de défauts ('+marks.length+')</h3>'+markList+(views?'<h3>Vues avec repères positionnés</h3>'+views:'')+(c.photo?'<h3>Photo jointe</h3><p><a href="'+reportEscape(c.photo)+'">Ouvrir la photo du contrôle</a></p><img class="attached" src="'+reportEscape(c.photo)+'" alt="Photo jointe">':'<p>Aucune photo jointe.</p>')+'</article>';
+   }).join('');
+   const issues=rows.filter(c=>c.status==='Dégâts'||(c.marks||[]).length).length;
+   return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport Multicourses — '+reportEscape(formatHistoryDate(day))+'</title><style>body{font:15px Arial,sans-serif;color:#172033;line-height:1.5;margin:24px auto;padding:0 16px;max-width:900px}h1,h2{color:#12315d}article{border:1px solid #cbd5e1;border-radius:12px;padding:18px;margin:20px 0;page-break-inside:avoid}h3{margin-bottom:5px;color:#244b77}h4{margin:10px 0}.vehicle-view{position:relative;width:100%;max-width:500px;aspect-ratio:500/340;background:#f1f5f9}.vehicle-view img,.vehicle-view svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.vehicle-view svg{pointer-events:none}li{margin:6px 0}li i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}.attached{display:block;max-width:100%;height:auto;border-radius:8px}@media print{body{margin:0}article{break-inside:avoid}}</style></head><body><h1>Multicourses — Rapport journalier des contrôles</h1><p><b>Date :</b> '+reportEscape(formatHistoryDate(day))+'</p><p><b>Nombre de contrôles :</b> '+rows.length+' · <b>Contrôles avec dégâts ou repères :</b> '+issues+'</p>'+(detail||'<p>Aucun contrôle enregistré pour cette journée.</p>')+'<footer><hr><p>Rapport généré depuis DSP — Contrôle de flotte.</p></footer></body></html>';
+ }
+ window.shareDailyReport=async function(day){
+   const rows=checks.filter(c=>historyDayKey(c)===day);
+   if(!rows.length){alert('Aucun contrôle à inclure pour cette journée.');return}
+   const html=buildDailyReport(day);
+   const safeDay=String(day).replace(/[^0-9-]/g,'_');
+   const fileName='Rapport_Multicourses_'+safeDay+'.html';
+   const file=new File([html],fileName,{type:'text/html;charset=utf-8'});
+   const title='Rapport Multicourses — '+formatHistoryDate(day);
+   try{
+     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+       await navigator.share({files:[file],title:title,text:'Rapport complet des contrôles de la journée ('+rows.length+' contrôles).'});
+       return;
+     }
+   }catch(error){if(error&&error.name==='AbortError')return;console.warn('Partage natif indisponible',error)}
+   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+   const url=URL.createObjectURL(blob);
+   const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   alert('Le rapport complet a été téléchargé. Ouvre-le depuis les téléchargements puis utilise Partager pour l’envoyer par e-mail.');
+ };
+ const originalOpenHistoryDay=window.openHistoryDay;
+ window.openHistoryDay=function(day){
+   originalOpenHistoryDay(day);
+   const box=document.getElementById('globalHistory');
+   if(!box||box.querySelector('#shareDailyReportBtn'))return;
+   const btn=document.createElement('button');
+   btn.id='shareDailyReportBtn';btn.type='button';btn.style.cssText='display:block;width:100%;margin:14px 0;padding:14px;font-weight:800;background:#123b68;color:#fff;border-radius:10px';
+   btn.textContent='✉️ Envoyer / partager le rapport complet de cette journée';
+   btn.onclick=()=>window.shareDailyReport(day);
+   const heading=box.querySelector('h2');
+   if(heading)heading.insertAdjacentElement('afterend',btn);else box.prepend(btn);
+ };
+})();
+</script>
 </body></html>
