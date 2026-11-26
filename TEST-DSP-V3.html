@@ -331,6 +331,42 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
    }).join('');
    const issues=rows.filter(c=>c.status==='Dégâts'||(c.marks||[]).length).length;
    return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport Multicourses — '+reportEscape(formatHistoryDate(day))+'</title><style>body{font:15px Arial,sans-serif;color:#172033;line-height:1.5;margin:24px auto;padding:0 16px;max-width:900px}h1,h2{color:#12315d}article{border:1px solid #cbd5e1;border-radius:12px;padding:18px;margin:20px 0;page-break-inside:avoid}h3{margin-bottom:5px;color:#244b77}h4{margin:10px 0}.vehicle-view{position:relative;width:100%;max-width:500px;aspect-ratio:500/340;background:#f1f5f9}.vehicle-view img,.vehicle-view svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.vehicle-view svg{pointer-events:none}li{margin:6px 0}li i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}.attached{display:block;max-width:100%;height:auto;border-radius:8px}@media print{body{margin:0}article{break-inside:avoid}}</style></head><body><h1>Multicourses — Rapport journalier des contrôles</h1><p><b>Date :</b> '+reportEscape(formatHistoryDate(day))+'</p><p><b>Nombre de contrôles :</b> '+rows.length+' · <b>Contrôles avec dégâts ou repères :</b> '+issues+'</p>'+(detail||'<p>Aucun contrôle enregistré pour cette journée.</p>')+'<footer><hr><p>Rapport généré depuis DSP — Contrôle de flotte.</p></footer>
+</body></html>';
+ }
+ window.shareDailyReport=async function(day){
+   const rows=checks.filter(c=>historyDayKey(c)===day);
+   if(!rows.length){alert('Aucun contrôle à inclure pour cette journée.');return}
+   const html=buildDailyReport(day);
+   const safeDay=String(day).replace(/[^0-9-]/g,'_');
+   const fileName='Rapport_Multicourses_'+safeDay+'.html';
+   const file=new File([html],fileName,{type:'text/html;charset=utf-8'});
+   const title='Rapport Multicourses — '+formatHistoryDate(day);
+   try{
+     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+       await navigator.share({files:[file],title:title,text:'Rapport complet des contrôles de la journée ('+rows.length+' contrôles).'});
+       return;
+     }
+   }catch(error){if(error&&error.name==='AbortError')return;console.warn('Partage natif indisponible',error)}
+   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+   const url=URL.createObjectURL(blob);
+   const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   alert('Le rapport complet a été téléchargé. Ouvre-le depuis les téléchargements puis utilise Partager pour l’envoyer par e-mail.');
+ };
+ const originalOpenHistoryDay=window.openHistoryDay;
+ window.openHistoryDay=function(day){
+   originalOpenHistoryDay(day);
+   const box=document.getElementById('globalHistory');
+   if(!box||box.querySelector('#shareDailyReportBtn'))return;
+   const btn=document.createElement('button');
+   btn.id='shareDailyReportBtn';btn.type='button';btn.style.cssText='display:block;width:100%;margin:14px 0;padding:14px;font-weight:800;background:#123b68;color:#fff;border-radius:10px';
+   btn.textContent='✉️ Envoyer / partager le rapport complet de cette journée';
+   btn.onclick=()=>window.shareDailyReport(day);
+   const heading=box.querySelector('h2');
+   if(heading)heading.insertAdjacentElement('afterend',btn);else box.prepend(btn);
+ };
+})();
+</script>
 <script id="dsp-history-tools">
 (function(){
  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -374,42 +410,6 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
   return `<div class="history-item" style="border-left:5px solid #ea580c;background:#fff7ed;padding:12px"><b>⚠️ Anomalies anciennes à vérifier</b><p>${arr.length} contrôle(s) avec anomalie depuis le dernier contrôle OK sans défaut :</p><ul>${list}</ul><p class="small">Elles restent signalées tant qu’un contrôle ultérieur n’est pas enregistré OK sans repère.</p></div>`;
  };
  const style=document.createElement('style');style.textContent='.dsp-search{width:100%;padding:12px;border:1px solid #aebdce;border-radius:10px;margin:10px 0 14px;font-size:16px;background:#fff;color:#172033}';document.head.appendChild(style);
-})();
-</script>
-</body></html>';
- }
- window.shareDailyReport=async function(day){
-   const rows=checks.filter(c=>historyDayKey(c)===day);
-   if(!rows.length){alert('Aucun contrôle à inclure pour cette journée.');return}
-   const html=buildDailyReport(day);
-   const safeDay=String(day).replace(/[^0-9-]/g,'_');
-   const fileName='Rapport_Multicourses_'+safeDay+'.html';
-   const file=new File([html],fileName,{type:'text/html;charset=utf-8'});
-   const title='Rapport Multicourses — '+formatHistoryDate(day);
-   try{
-     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-       await navigator.share({files:[file],title:title,text:'Rapport complet des contrôles de la journée ('+rows.length+' contrôles).'});
-       return;
-     }
-   }catch(error){if(error&&error.name==='AbortError')return;console.warn('Partage natif indisponible',error)}
-   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-   const url=URL.createObjectURL(blob);
-   const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),30000);
-   alert('Le rapport complet a été téléchargé. Ouvre-le depuis les téléchargements puis utilise Partager pour l’envoyer par e-mail.');
- };
- const originalOpenHistoryDay=window.openHistoryDay;
- window.openHistoryDay=function(day){
-   originalOpenHistoryDay(day);
-   const box=document.getElementById('globalHistory');
-   if(!box||box.querySelector('#shareDailyReportBtn'))return;
-   const btn=document.createElement('button');
-   btn.id='shareDailyReportBtn';btn.type='button';btn.style.cssText='display:block;width:100%;margin:14px 0;padding:14px;font-weight:800;background:#123b68;color:#fff;border-radius:10px';
-   btn.textContent='✉️ Envoyer / partager le rapport complet de cette journée';
-   btn.onclick=()=>window.shareDailyReport(day);
-   const heading=box.querySelector('h2');
-   if(heading)heading.insertAdjacentElement('afterend',btn);else box.prepend(btn);
- };
 })();
 </script>
 </body></html>
