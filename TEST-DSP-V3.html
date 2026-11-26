@@ -274,7 +274,7 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
    const v=vehicles.find(x=>String(x.id)===String(currentVehicle));if(!v)return;
    const prev=checks.filter(c=>String(c.vehicleId)===String(currentVehicle)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))||Number(b.id)-Number(a.id))[0];
    if(!prev)return;
-   const oldMarks=(Array.isArray(prev.marks)?prev.marks:[]).filter(m=>m.view===activeView);
+   const oldMarks=checks.filter(c=>String(c.vehicleId??c.vehicle_id)===String(currentVehicle)).flatMap(c=>(Array.isArray(c.marks)?c.marks:[]).filter(m=>m.view===activeView));
    if(!oldMarks.length)return;
    const host=document.querySelector('#drawing .drawing-content');const live=document.getElementById('markSvg');if(!host||!live)return;
    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 500 340');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-label','Anciens repères du contrôle précédent');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none';
@@ -403,15 +403,6 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
  const oldStart=window.startCheck;
  window.startCheck=function(){
   oldStart();
-  document.querySelectorAll('#dailyList .veh[data-vehicle-id]').forEach(el=>{
-   const id=el.getAttribute('data-vehicle-id'),issues=outstanding(id);
-   if(!issues.length)return;
-   const summary=document.createElement('div');
-   summary.className='history-item';
-   summary.style.cssText='margin:8px 0;padding:10px;border-left:5px solid #ea580c;background:#fff7ed;color:#7c2d12';
-   summary.innerHTML='<b>⚠️ ATTENTION — ANOMALIES DÉJÀ SIGNALÉES</b><ul style="margin:6px 0;padding-left:20px">'+issues.map(c=>'<li>'+esc(formatHistoryDate(c.date))+' — '+esc(issueMarks(c).map(m=>m.type||'Défaut').join(', ')||String(c.notes||'Dégâts signalés').replace(/\[DSP_REPAIR\|\d{4}-\d{2}-\d{2}\|[^\]]*\]/g,''))+'</li>').join('')+'</ul><small>À vérifier avant le contrôle. Non réparé / non confirmé comme réparé.</small>';
-   const title=el.querySelector('b');if(title)title.insertAdjacentElement('afterend',summary);else el.prepend(summary);
-  });
   let input=$('dailyPlateSearch');
   if(!input){input=document.createElement('input');input.id='dailyPlateSearch';input.className='dsp-search';input.placeholder='Rechercher par véhicule ou immatriculation…';$('dailyList').parentNode.insertBefore(input,$('dailyList'));}
   input.value=dq;input.oninput=()=>{dq=input.value;document.querySelectorAll('#dailyList .veh').forEach(el=>el.style.display=norm(el.innerText).includes(norm(dq))?'':'none')};input.oninput();
@@ -432,9 +423,14 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
  }
  window.renderPreviousCheck=function(id){
   const arr=outstanding(id);
-  if(!arr.length)return '<div class="history-item" style="border-left:5px solid #16a34a;background:#f0fdf4;padding:12px"><b>✓ Aucune ancienne anomalie en attente</b></div>';
-  const list=arr.map(c=>{const marks=issueMarks(c);const detail=marks.map(m=>(m.type||'Défaut')+' ('+(m.view||'vue non précisée')+')').join(', ')||String(c.notes||'').replace(/\[DSP_REPAIR\|\d{4}-\d{2}-\d{2}\|[^\]]*\]/g,'').trim()||'Dégâts signalés';return '<li><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(c.status||'Anomalie')+' : '+esc(detail)+'</li>';}).join('');
-  return '<div class="history-item" style="border-left:5px solid #ea580c;background:#fff7ed;padding:12px"><b>⚠️ ATTENTION — ANOMALIES DÉJÀ SIGNALÉES</b><p>Ce véhicule présente '+arr.length+' déclaration(s) de dégâts ou défauts qui ne sont pas encore marquées comme réparées :</p><ul>'+list+'</ul><p class="small">Ces anomalies restent signalées même après un contrôle « OK ». Seule l’action « Marquer comme réparé » les retire de l’alerte.</p></div>';
+  if(!arr.length)return '<div class="history-item" style="border-left:5px solid #16a34a;background:#f0fdf4;padding:10px"><b>✓ Aucune anomalie ancienne en attente de réparation</b></div>';
+  const latest=arr[0];
+  const details=arr.map(c=>{
+   const marks=issueMarks(c);
+   const description=marks.map(m=>(m.type||'Défaut')+' — '+(m.view||'vue non précisée')).join(', ')||String(c.notes||'').replace(/\[DSP_REPAIR\|\d{4}-\d{2}-\d{2}\|[^\]]*\]/g,'').trim()||'Dégâts signalés';
+   return '<li style="margin:8px 0"><b>'+esc(formatHistoryDate(c.date))+'</b> — '+esc(description)+'<br><small>DSP : '+esc(c.inspector||'—')+' · Chauffeur : '+esc(c.driver||'—')+'</small><br><button type="button" style="margin-top:6px;padding:7px 10px;background:#15803d;color:white;border:0;border-radius:8px;font-weight:700" onclick="markVehicleDamageRepaired('+Number(id)+','+Number(c.id)+')">✓ Marquer comme réparé</button></li>';
+  }).join('');
+  return '<div class="history-item" style="border-left:5px solid #ea580c;background:#fff7ed;padding:10px"><b>⚠️ ANOMALIE DÉJÀ SIGNALÉE SUR CE VÉHICULE</b><p style="margin:5px 0">Un ou plusieurs défauts figurent déjà dans l’historique (dernier signalement : '+esc(formatHistoryDate(latest.date))+'). Vérifie les anciens repères sur le schéma et l’historique avant de poursuivre.</p><details><summary style="cursor:pointer;font-weight:700">Consulter les anomalies et les réparations ('+arr.length+')</summary><ul style="padding-left:20px">'+details+'</ul></details></div>';
  };
  const oldDrawing=window.renderDrawing;
  window.renderDrawing=function(){oldDrawing();const v=vehicles.find(x=>String(x.id)===String(currentVehicle));const p=photos[v?.model||'']||{};if(activeView==='droite'&&p.droite&&p.gauche&&p.droite!==p.gauche){const el=document.querySelector('#drawing .drawing-content');if(el)el.style.transform='none';}};
@@ -473,6 +469,7 @@ window.openHistoryCheck=function(id){window.renderHistoryCheckView(id,'avant');}
   const result=await sb.from('checks').update({notes}).eq('id',c.id);
   if(result.error){alert('Impossible d’enregistrer la réparation : '+result.error.message);return;}
   await loadData();
+  if(String(currentVehicle)===String(vehicleId)){const box=$('vehicleHistory');if(box)box.innerHTML=renderVehicleHistory(checks.filter(x=>String(x.vehicleId??x.vehicle_id)===String(vehicleId)));const alertBox=$('detail').querySelector('.history-item');if(alertBox)alertBox.outerHTML=window.renderPreviousCheck(vehicleId);}
   window.renderVehicleHistoryList(vehicleId);
   alert('Réparation enregistrée. L’anomalie reste dans l’historique, mais elle n’est plus signalée comme étant en attente.');
  };
