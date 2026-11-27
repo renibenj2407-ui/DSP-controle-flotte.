@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 280" role="img" aria-labelledby="title desc">
+<title id="title">DSP Control Flotte</title>
+<desc id="desc">Emblème premium bleu nuit et chrome, bouclier avec route orange intégrée au monogramme DSP.</desc>
+<defs>
+ <linearGradient id="chrome" x1="0" y1="0" x2="0.15" y2="1">
+  <stop offset="0" stop-color="#ffffff"/><stop offset=".18" stop-color="#b9c8d8"/><stop offset=".38" stop-color="#f8fbff"/><stop offset=".62" stop-color="#73869b"/><stop offset=".82" stop-color="#e6edf5"/><stop offset="1" stop-color="#8798aa"/>
+ </linearGradient>
+ <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#152d52"/><stop offset="1" stop-color="#07162d"/></linearGradient>
+ <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ffb02e"/><stop offset=".5" stop-color="#ff6a00"/><stop offset="1" stop-color="#e94a00"/></linearGradient>
+ <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<g transform="translate(16 12)">
+ <path d="M118 5 224 42v77c0 65-42 111-106 139C54 230 12 184 12 119V42Z" fill="url(#navy)" stroke="#a9bacd" stroke-width="5"/>
+ <path d="M118 18 211 50v68c0 56-35 96-93 122-58-26-93-66-93-122V50Z" fill="none" stroke="#304d70" stroke-width="2"/>
+ <path d="M48 143c28-14 48-30 70-56 17-20 33-38 62-49" fill="none" stroke="url(#orange)" stroke-width="10" stroke-linecap="round" filter="url(#glow)"/>
+ <path d="M118 100v24m0 16v15m0 16v13" stroke="#fff1df" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 7"/>
+ <path d="M45 181h146" stroke="#456181" stroke-width="2"/>
+ <path d="M74 205h88" stroke="#ff7414" stroke-width="4" stroke-linecap="round"/>
+</g>
+<g transform="translate(270 38)">
+ <text x="0" y="126" font-family="Arial, Helvetica, sans-serif" font-size="126" font-weight="900" letter-spacing="-8" fill="url(#chrome)" stroke="#253c58" stroke-width="2" paint-order="stroke">DSP</text>
+ <path d="M10 151H470" stroke="#ff6a00" stroke-width="7" stroke-linecap="round"/>
+ <path d="M385 151h85l-20-13m20 13-20 13" fill="none" stroke="#ff9a2f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+ <text x="7" y="204" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="800" letter-spacing="8" fill="#dce6f2">CONTROL FLOTTE</text>
+ <text x="10" y="237" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="5" fill="#ff8a24">PRECISION • PERFORMANCE • FLEET</text>
+</g>
+</svg>
