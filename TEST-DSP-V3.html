@@ -215,12 +215,18 @@ sb.auth.onAuthStateChange((_event,session)=>{if(_event==='SIGNED_IN'||_event==='
   window.closeVehicleForm = function(){ leave('vehicle-form', originals.closeVehicleForm); };
   window.editVehicle = function(id){ return enter('vehicle-form', originals.editVehicle, id); };
   window.returnHomeAfterCheck = function(){
+    // Revenir explicitement à l'écran principal de la flotte, jamais à la fiche véhicule.
     stack.length = 0;
     try { history.replaceState({dspNavigation:'home'}, '', location.pathname + location.search); } catch(e) {}
     $('detail').classList.add('hidden');
     $('dailyPane').classList.add('hidden');
     $('home').classList.remove('hidden');
+    const vehicleForm = $('addVehiclePane');
+    if (vehicleForm) vehicleForm.classList.add('hidden');
     currentVehicle = null;
+    if (typeof switchTab === 'function') switchTab('fleet');
+    if (typeof renderVehicles === 'function') renderVehicles();
+    window.scrollTo({top:0, behavior:'smooth'});
     $('home').scrollIntoView({behavior:'smooth',block:'start'});
   };
   window.addEventListener('popstate', function(event){
