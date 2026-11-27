@@ -54,3 +54,25 @@ Il reste à préparer les déclinaisons d'icône PWA / favicon et à vérifier l
 4. Ajouter le logo et les déclinaisons d'icône.
 5. Tester les parcours de connexion, flotte, contrôle quotidien, dessin, historique, rapport et partage.
 6. Faire valider la version intégrée avant toute publication ou changement de production.
+
+## Candidat de fusion préparé sur la branche de travail
+- Fichier de test assemblé : `TEST-DSP-FUSION.html`.
+- Base choisie : V3, qui conserve les 19 fonctions de la principale et ajoute 10 fonctions d'historique / rapports / réparations.
+- Les différences fonctionnelles importantes ont été repérées : chauffeur obligatoire dans le contrôle quotidien V3, ouverture de l'historique depuis une carte véhicule, historique global regroupé par journée, détails complets d'un contrôle, repérage historique, rapport journalier partageable et suivi des réparations.
+- La carte photo V3 est conservée pour les modèles disponibles. La vue de chargement Primastar de la principale a été ajoutée au candidat pour ne pas perdre cette vue.
+- Les chemins d'images du candidat sont locaux/relatifs, pas des URL `raw.githubusercontent.com`, afin de préparer le passage futur du dépôt en privé.
+- Le logo vectoriel, l'icône SVG et le manifeste PWA ont été ajoutés à la branche de travail.
+- Validation statique : les 9 scripts JavaScript intégrés passent la compilation syntaxique ; les références d'images du candidat sont présentes dans le dépôt ; aucune URL raw GitHub restante. Deux identifiants `vhSearch` et `vhResults` sont répétés dans deux modèles de rendu dynamique de l'historique ; ils ne sont pas présents simultanément dans le même écran, mais restent à valider en test navigateur.
+
+## Inventaire Supabase complémentaire du projet référencé par l'application
+- Utilisateurs Auth : 1.
+- Buckets Storage : 0 ; objets Storage : 0.
+- Edge Functions : aucune.
+- Policies RLS dans le schéma public : 11, limitées au rôle `authenticated`.
+- Triggers sur les tables publiques : aucun.
+- Index : uniquement les clés primaires sur les trois tables publiques.
+- Migrations Supabase enregistrées : aucune.
+- Extensions effectivement installées : `pg_stat_statements`, `supabase_vault`, `pgcrypto`, `uuid-ossp`.
+
+## Limites de sauvegarde à ne pas masquer
+Ce travail n'est pas encore une sauvegarde intégrale restaurable de tout le projet Supabase. Les outils connectés disponibles permettent l'inspection SQL, mais pas de produire directement un dump natif complet ni d'exporter les secrets de projet ou les identifiants Auth avec leurs moyens de connexion. Le dépôt GitHub est encore public : aucune ligne de données contenant des immatriculations, des noms de conducteurs ou des historiques ne doit y être déposée tant que la confidentialité du dépôt n'a pas été changée. Il faut conserver une sauvegarde native Supabase et traiter séparément le compte Auth / les paramètres secrets avant d'annoncer une restauration intégrale.
