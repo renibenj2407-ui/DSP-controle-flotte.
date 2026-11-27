@@ -1,0 +1,16 @@
+{
+  "capture_date": "2026-11-27",
+  "source_project_id": "ibvytlkuzhfsgtznwfix",
+  "supabase_url": "https://ibvytlkuzhfsgtznwfix.supabase.co",
+  "public_keys": [
+    {
+      "type": "legacy_anon",
+      "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlidnl0bGt1emhmc2d0em53Zml4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0NTk4MTgsImV4cCI6MjExMTAzNTgxOH0.QgdXG-v7sY6Dfd6rPG5KOBm6Z7KKRHCe1D-UaHTN_Zk"
+    },
+    {
+      "type": "publishable",
+      "key": "sb_publishable_kZHkPTuo-yRHMdYIgTYu3g_Jk83bLAG"
+    }
+  ],
+  "note": "Clés publiques uniquement. Aucune clé service_role, secret API, mot de passe ou jeton privé n'est inclus."
+}
