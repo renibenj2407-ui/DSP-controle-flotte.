@@ -150,7 +150,7 @@ function renderDrawing(){
 }
 window.removeMark=i=>{draftMarks.splice(i,1);renderDrawing()};
 function renderVehicleHistory(arr){return arr.length?arr.map(c=>`<div class="history-item"><b>${esc(c.date)} — ${esc(c.status)}</b><div class="muted">DSP ${esc(c.inspector||'—')} · Conducteur ${esc(c.driver||'—')}</div>${c.notes?`<p>${esc(c.notes)}</p>`:''}<p>Repères : ${(c.marks||[]).map(m=>esc(m.type)).join(', ')||'Aucun'} · Propreté : ${esc(c.cleanStatus||'—')}${c.cleanNote?' — '+esc(c.cleanNote):''}</p>${c.photo?`<img src="${c.photo}" alt="Photo du contrôle">`:''}</div>`).join(''):'<p class="muted">Pas encore de contrôle enregistré.</p>'}
-window.saveCheck=async()=>{let dsp=$('inspector').value.trim();if(!dsp){alert('Indique le nom du DSP.');return}let driver=$('driver').value.trim();if(!driver){alert('Le nom du chauffeur est obligatoire.');$('driver').focus();return}let file=$('photoInput').files[0];const commit=async(photo)=>{let payload={id:Date.now(),vehicle_id:currentVehicle,check_date:today(),inspector:dsp,driver:driver,status:$('checkStatus').value,notes:$('notes').value.trim(),marks:draftMarks,clean_status:$('cleanStatus').value,clean_note:$('cleanNote').value.trim(),photo_url:photo||null};let r=await sb.from('checks').insert(payload);if(r.error){alert('Erreur enregistrement : '+r.error.message);return}alert('Contrôle enregistré !');const savedVehicleId=String(currentVehicle);if(typeof dailyDraft!=='undefined')delete dailyDraft[savedVehicleId];await loadData();const dailyRow=document.querySelector('#dailyList .veh[data-vehicle-id="'+savedVehicleId+'"]');if(dailyRow)dailyRow.remove();if(!$('dailyList').querySelector('.veh'))$('dailyList').innerHTML='<div class="panel muted">Tous les véhicules ont déjà été contrôlés aujourd’hui. La liste sera renouvelée demain.</div>';openDetail(currentVehicle)};if(file){if(file.size>4*1024*1024){alert('Photo trop lourde (max 4 Mo).');return}let fr=new FileReader();fr.onload=()=>commit(fr.result);fr.readAsDataURL(file)}else commit(null)};
+window.saveCheck=async()=>{let dsp=$('inspector').value.trim();if(!dsp){alert('Indique le nom du DSP.');return}let driver=$('driver').value.trim();if(!driver){alert('Le nom du chauffeur est obligatoire.');$('driver').focus();return}let file=$('photoInput').files[0];const commit=async(photo)=>{let payload={id:Date.now(),vehicle_id:currentVehicle,check_date:today(),inspector:dsp,driver:driver,status:$('checkStatus').value,notes:$('notes').value.trim(),marks:draftMarks,clean_status:$('cleanStatus').value,clean_note:$('cleanNote').value.trim(),photo_url:photo||null};let r=await sb.from('checks').insert(payload);if(r.error){alert('Erreur enregistrement : '+r.error.message);return}alert('Contrôle enregistré !');const savedVehicleId=String(currentVehicle);if(typeof dailyDraft!=='undefined')delete dailyDraft[savedVehicleId];await loadData();const dailyRow=document.querySelector('#dailyList .veh[data-vehicle-id="'+savedVehicleId+'"]');if(dailyRow)dailyRow.remove();if(!$('dailyList').querySelector('.veh'))$('dailyList').innerHTML='<div class="panel muted">Tous les véhicules ont déjà été contrôlés aujourd’hui. La liste sera renouvelée demain.</div>';window.returnHomeAfterCheck()};if(file){if(file.size>4*1024*1024){alert('Photo trop lourde (max 4 Mo).');return}let fr=new FileReader();fr.onload=()=>commit(fr.result);fr.readAsDataURL(file)}else commit(null)};
 function formatHistoryDate(date){if(!date)return 'Date inconnue';const p=String(date).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(date)}
 function historyDayKey(c){return c.date||'Date inconnue'}
 function renderGlobalHistory(){
@@ -214,6 +214,21 @@ sb.auth.onAuthStateChange((_event,session)=>{if(_event==='SIGNED_IN'||_event==='
   window.openVehicleForm = function(){ return enter('vehicle-form', originals.openVehicleForm); };
   window.closeVehicleForm = function(){ leave('vehicle-form', originals.closeVehicleForm); };
   window.editVehicle = function(id){ return enter('vehicle-form', originals.editVehicle, id); };
+  window.returnHomeAfterCheck = function(){
+    // Revenir explicitement à l'écran principal de la flotte, jamais à la fiche véhicule.
+    stack.length = 0;
+    try { history.replaceState({dspNavigation:'home'}, '', location.pathname + location.search); } catch(e) {}
+    $('detail').classList.add('hidden');
+    $('dailyPane').classList.add('hidden');
+    $('home').classList.remove('hidden');
+    const vehicleForm = $('addVehiclePane');
+    if (vehicleForm) vehicleForm.classList.add('hidden');
+    currentVehicle = null;
+    if (typeof switchTab === 'function') switchTab('fleet');
+    if (typeof renderVehicles === 'function') renderVehicles();
+    window.scrollTo({top:0, behavior:'smooth'});
+    $('home').scrollIntoView({behavior:'smooth',block:'start'});
+  };
   window.addEventListener('popstate', function(event){
     const leaving = stack.pop();
     if (leaving === 'detail') originals.closeDetail();
