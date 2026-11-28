@@ -1,0 +1,19 @@
+{
+  "name": "DSP Control Flotte",
+  "short_name": "DSP Flotte",
+  "description": "Contrôle et suivi de flotte de véhicules",
+  "start_url": "./TEST-DSP-V3.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07111f",
+  "theme_color": "#17243d",
+  "icons": [
+    {
+      "src": "icons/dsp-control-flotte.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
