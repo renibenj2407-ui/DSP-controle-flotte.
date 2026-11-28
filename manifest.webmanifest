@@ -11,15 +11,9 @@
   "theme_color": "#07162d",
   "icons": [
     {
-      "src": "assets/brand/dsp-control-flotte-icon.svg",
+      "src": "file_0000000095fc81f492350b9a62299d30.png",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/dsp-control-flotte.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
