@@ -1,9 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<defs><linearGradient id="n" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#17375f"/><stop offset="1" stop-color="#061326"/></linearGradient><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".45" stop-color="#aebdce"/><stop offset=".7" stop-color="#f8fbff"/><stop offset="1" stop-color="#71849a"/></linearGradient><linearGradient id="o"><stop stop-color="#ffb02e"/><stop offset="1" stop-color="#f45100"/></linearGradient></defs>
-<rect width="512" height="512" rx="112" fill="url(#n)"/>
-<path d="M256 48 424 108v132c0 104-64 176-168 224C152 416 88 344 88 240V108Z" fill="none" stroke="#9fb2c8" stroke-width="12"/>
-<path d="M137 281c48-16 84-52 119-91 29-32 58-57 119-79" fill="none" stroke="url(#o)" stroke-width="22" stroke-linecap="round"/>
-<path d="M256 199v30m0 22v30m0 22v28" stroke="#fff1df" stroke-width="9" stroke-linecap="round" stroke-dasharray="10 13"/>
-<text x="256" y="376" font-family="Arial,Helvetica,sans-serif" font-size="118" font-weight="900" text-anchor="middle" fill="url(#s)" stroke="#243d5c" stroke-width="3" paint-order="stroke">DSP</text>
-<path d="M142 408h228" stroke="#ff7414" stroke-width="10" stroke-linecap="round"/>
+<defs>
+ <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#152b46"/><stop offset=".55" stop-color="#071321"/><stop offset="1" stop-color="#02070d"/></linearGradient>
+ <linearGradient id="chrome" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".22" stop-color="#aebdcb"/><stop offset=".43" stop-color="#f8fbff"/><stop offset=".67" stop-color="#66788b"/><stop offset=".82" stop-color="#eef4fa"/><stop offset="1" stop-color="#72849a"/></linearGradient>
+ <linearGradient id="orange" x2="1" y2="1"><stop stop-color="#ffbf52"/><stop offset=".55" stop-color="#ff7817"/><stop offset="1" stop-color="#d94308"/></linearGradient>
+ <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#9fc4e4"/><stop offset="1" stop-color="#17334e"/></linearGradient>
+ <linearGradient id="road" x2="0" y2="1"><stop stop-color="#27394b"/><stop offset="1" stop-color="#05090e"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feGaussianBlur stdDeviation="7"/></filter>
+</defs>
+<rect width="512" height="512" rx="104" fill="url(#bg)"/>
+<!-- night depot skyline -->
+<g opacity=".36" fill="#46617a"><path d="M0 226h64v-65h24v65h28v-91h43v91h34v-52h25v52h40v-82h52v82h35v-58h24v58h44v-90h40v90h59v70H0Z"/></g>
+<path d="M32 202Q256 18 480 202" fill="none" stroke="url(#orange)" stroke-width="13" stroke-linecap="round"/>
+<path d="M58 218Q256 66 454 218" fill="none" stroke="#ffd19a" stroke-opacity=".35" stroke-width="2"/>
+<!-- van shadow -->
+<ellipse cx="258" cy="252" rx="150" ry="22" fill="#000" opacity=".8" filter="url(#shadow)"/>
+<!-- front facing delivery van -->
+<path d="M143 142Q149 119 177 113L335 113Q363 120 370 145L385 226Q389 246 370 252H142Q123 246 127 226Z" fill="#101b28" stroke="#d7e2ee" stroke-width="5"/>
+<path d="M165 139Q172 128 190 127H322Q341 128 348 141L357 188H155Z" fill="url(#glass)" stroke="#dbe8f5" stroke-width="4"/>
+<path d="M256 128v60" stroke="#d5e0eb" stroke-width="4" opacity=".8"/>
+<path d="M150 198h212l10 34q2 9-10 10H150q-12-1-10-10Z" fill="#d9e1e9"/>
+<path d="M142 204h37l-7 26h-36Z" fill="#eaf7ff"/><path d="M369 204h-37l7 26h36Z" fill="#eaf7ff"/>
+<path d="M145 211h29" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M367 211h-29" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+<rect x="223" y="214" width="66" height="19" rx="5" fill="#1a2a3a"/><path d="M133 237h246l-15 24H148Z" fill="#0b121b" stroke="#8293a5" stroke-width="3"/>
+<circle cx="174" cy="248" r="13" fill="#080d13" stroke="#718195" stroke-width="4"/><circle cx="338" cy="248" r="13" fill="#080d13" stroke="#718195" stroke-width="4"/>
+<!-- road -->
+<path d="M0 290 512 290v222H0Z" fill="url(#road)"/>
+<path d="M256 298 244 512h24Z" fill="#dce6ef" opacity=".75"/>
+<path d="M82 302 40 512" stroke="#ff791d" stroke-width="5" opacity=".8"/><path d="M430 302 472 512" stroke="#ff791d" stroke-width="5" opacity=".8"/>
+<path d="M255 320v30m0 22v28m0 22v24" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".65"/>
+<!-- DSP typography -->
+<text x="256" y="390" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="112" font-weight="900" letter-spacing="-8" fill="url(#chrome)" stroke="#18283b" stroke-width="5" paint-order="stroke">DSP</text>
+<path d="M324 313 349 294" stroke="url(#orange)" stroke-width="10" stroke-linecap="round"/>
+<text x="256" y="431" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-style="italic" font-weight="800" letter-spacing="2.5" fill="#f3f6fa">CONTROL FLOTTE</text>
+<path d="M112 449h52m-42 12h42m184-12h52m-42 12h42" stroke="url(#orange)" stroke-width="6" stroke-linecap="round"/>
+<rect x="9" y="9" width="494" height="494" rx="98" fill="none" stroke="#c7d4e2" stroke-opacity=".48" stroke-width="8"/>
 </svg>
