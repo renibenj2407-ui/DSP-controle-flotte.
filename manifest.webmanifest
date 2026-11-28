@@ -10,10 +10,10 @@
   "theme_color": "#17243d",
   "icons": [
     {
-      "src": "icons/dsp-control-flotte.svg",
+      "src": "file_0000000095fc81f492350b9a62299d30.png",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
